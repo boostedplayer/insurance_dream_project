@@ -30,7 +30,8 @@ with engine.begin() as conn:
             policy_id SERIAL PRIMARY KEY,
             policy_type TEXT NOT NULL,
             policy_desc TEXT NOT NULL,
-            policy_tenure INTERVAL NOT NULL, 
+            policy_tenure INTERVAL NOT NULL,
+            policy_category TEXT NOT NULL, 
             covers TEXT NOT NULL
         );
     """))
@@ -57,6 +58,28 @@ with engine.begin() as conn:
             status TEXT NOT NULL,
             verdict TEXT NOT NULL
         );
+    """))
+
+    conn.execute(text("""
+        CREATE TABLE underwriting_results (
+            underwriting_id SERIAL PRIMARY KEY,
+
+            user_id INT NOT NULL,
+            policy_id INT NOT NULL,
+
+            risk_score FLOAT NOT NULL,
+            risk_category VARCHAR(30) NOT NULL,
+
+            base_premium FLOAT NOT NULL,
+            loading_percent FLOAT NOT NULL,
+            loading_amount FLOAT NOT NULL,
+            final_premium FLOAT NOT NULL,
+
+            model_version VARCHAR(20),
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
     """))
     
     print('table created')
