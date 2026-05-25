@@ -1,4 +1,5 @@
 from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableConfig
 from typing import Any
 import pandas as pd
@@ -12,8 +13,7 @@ from agent.nodes.utils import RISK_LOADING
 @tool
 def new_policy_inquiry(policy_type : str, config : RunnableConfig) -> dict[str,Any]:
     """
-    Use when the user wants to inquire about a new insurance policy.
-
+    Use when the user wants to inquire or buy a new insurance policy.
     policy_type should be one of:
     - health
     - motor
@@ -93,6 +93,8 @@ def new_policy_inquiry(policy_type : str, config : RunnableConfig) -> dict[str,A
             {
                 "policy_name": i.policy_name,
                 "policy_id": i.policy_id,
+                "policy_description":i.description,
+                "policy_tenure":i.policy_tenure,
                 "base_premium": i.premium,
                 "risk_loading_percent": loading_percent,
                 "final_premium": round(i.premium+i.premium*loading_percent,2),
@@ -100,5 +102,6 @@ def new_policy_inquiry(policy_type : str, config : RunnableConfig) -> dict[str,A
                 "covers": i.covers,
             }
             for i in policies
-        ]
+        ],
+
     }

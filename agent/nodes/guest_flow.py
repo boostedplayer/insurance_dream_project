@@ -4,12 +4,12 @@ from langgraph.types import Command
 
 from agent.prompts.validation_prompt import validation_prompt
 from agent.graph import gc_model,info_validator,info_extractor
-from agent.state.model_state import ModelState
+from agent.state.orchestration_state import OrchestrationState
 from agent.state.user import User
 from agent.db.db import engine
 
 
-def check_user(state:ModelState):
+def check_user(state:OrchestrationState):
 
     with engine.connect() as conn:
        data = conn.execute(
@@ -29,13 +29,13 @@ def check_user(state:ModelState):
         return {"user_valid":False}
     
 
-def guest_flow(state:ModelState):
+def guest_flow(state:OrchestrationState):
     msg = AIMessage(content="Hi, welcome to our insurance assistant. can i get your name please?")
     return {'text':[msg]}
 
 
 
-def ask_name(state:ModelState):
+def ask_name(state:OrchestrationState):
 
     latest_human_message = ""
     latest_model_message = ""
@@ -76,7 +76,7 @@ def ask_name(state:ModelState):
       
     
 
-def ask_email(state:ModelState):
+def ask_email(state:OrchestrationState):
 
     latest_human_message = ""
     latest_model_message = ""
@@ -117,7 +117,7 @@ def ask_email(state:ModelState):
     
 
 
-def ask_number(state:ModelState):
+def ask_number(state:OrchestrationState):
 
     latest_human_message = ""
     latest_model_message = ""
@@ -159,7 +159,7 @@ def ask_number(state:ModelState):
 
 
 
-def ask_pincode(state:ModelState):
+def ask_pincode(state:OrchestrationState):
     
     latest_human_message = ""
     latest_model_message = ""
@@ -199,7 +199,7 @@ def ask_pincode(state:ModelState):
             goto = 'ask_pincode'
         )
 
-def login_popup(state:ModelState):
+def login_popup(state:OrchestrationState):
     """ 
     will be done by django
     """

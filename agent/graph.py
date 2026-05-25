@@ -10,7 +10,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from agent.state.user import GuestResponseExtract,GuestResponseValidate,User
-from agent.state.model_state import ModelState
+from agent.state.orchestration_state import ModelState
 from agent.prompts.validation_prompt import validation_prompt
 from agent.prompts.insurance_prompt import insurance_prompt
 

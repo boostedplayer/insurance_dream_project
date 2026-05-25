@@ -1,6 +1,6 @@
-from agent.state.model_state import ModelState
+from agent.state.orchestration_state import OrchestrationState
 
-def route_by_auth(state:ModelState):
+def route_by_auth(state:OrchestrationState):
     if state.user_valid:
         return "insurance_bot"
     else:

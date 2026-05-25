@@ -7,7 +7,7 @@ from uuid import uuid4
 from agent.state.user import GuestResponseExtract
 from agent.state.user import User
 
-class ModelState(BaseModel):
+class OrchestrationState(BaseModel):
 
     text: Annotated[List[BaseMessage],add_messages] = Field(default_factory=lambda:[])
     user_valid: bool = Field(default=False)
