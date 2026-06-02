@@ -3,6 +3,7 @@ from langchain_core.messages import BaseMessage,SystemMessage,HumanMessage,AIMes
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import tool 
 from langchain_core.runnables import RunnableConfig
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 
 from langgraph.graph import StateGraph,START,END
 from langgraph.types import Command
@@ -26,6 +27,7 @@ import joblib
 load_dotenv()
 
 api_key = os.getenv("GROQ_API_KEY")
+access_token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
 gc_model = ChatGroq(
     model = "openai/gpt-120b-oss",
@@ -51,6 +53,11 @@ info_validator = ChatGroq(
     temperature=0,
 )
 
+embedding_model = HuggingFaceEndpointEmbeddings(
+    model = "sentence-transformers/all-MiniLM-L6-v2",
+    huggingfacehub_api_token= access_token,
+
+)
 ml_model = joblib.load('best_mode2.pk1')
   
 info_extractor = info_extractor.with_structured_output(GuestResponseExtract)

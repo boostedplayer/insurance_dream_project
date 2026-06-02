@@ -1,0 +1,56 @@
+faq_id,category,question,answer
+FAQ001,account_authentication,Why do I need to log in to see my policies?,"Login is required so the assistant can securely access your verified policy, billing, claim, and renewal information. Without login, the assistant can only provide general insurance guidance."
+FAQ002,account_authentication,Can a guest user buy insurance?,"A guest user can explore policy options and understand benefits, but must log in or complete verification before purchasing, generating final quotes, or issuing a policy."
+FAQ003,policy_recommendation,How does the assistant recommend policies?,"The assistant uses your profile information, risk category, policy type, coverage needs, and available plans to recommend suitable policies. It may use underwriting logic and policy matching rules."
+FAQ004,policy_recommendation,Why are only some policies shown to me?,"Policies are filtered based on policy type, risk category, eligibility, coverage needs, and pricing rules. This helps avoid showing plans that may not suit your profile."
+FAQ005,policy_recommendation,What is a risk category?,"A risk category is an internal grouping used to estimate insurance suitability and pricing. Examples include very_low, low, middle, high, and very_high."
+FAQ006,premium,Why is my premium higher than expected?,"Premium can increase due to factors such as age, health conditions, smoking, claim history, vehicle risk, occupation, coverage amount, and selected policy benefits."
+FAQ007,premium,Is the premium shown final?,"The premium shown by the assistant may be an estimate unless it has been finalized after underwriting, verification, and policy purchase confirmation."
+FAQ008,premium,What is risk loading?,Risk loading is an additional premium added when a user’s risk profile is higher than the base policy assumption. It helps price the policy according to expected risk.
+FAQ009,premium,Can my premium reduce later?,"Premium may reduce if risk factors improve, no-claim bonuses apply, discounts are available, or the insurer updates eligibility. Final changes depend on underwriting rules."
+FAQ010,coverage,What does coverage amount mean?,"Coverage amount is the maximum amount the insurer may pay under the policy, subject to terms, sub-limits, exclusions, and claim approval."
+FAQ011,coverage,Does health insurance cover pre-existing diseases?,"Pre-existing diseases may be covered after a waiting period, depending on the policy terms. Immediate coverage is usually not guaranteed."
+FAQ012,coverage,Does health insurance cover asthma?,"Asthma may be treated as a pre-existing or chronic condition. Coverage depends on the policy, waiting period, disclosure, and underwriting approval."
+FAQ013,coverage,Does health insurance cover maternity?,"Some health plans include maternity benefits, usually after a waiting period and subject to limits. Not every plan includes maternity cover."
+FAQ014,coverage,Does health insurance cover mental health?,"Some plans may include mental wellness consultations or psychiatric hospitalization, depending on policy terms and exclusions."
+FAQ015,coverage,What is not covered in health insurance?,"Common exclusions include cosmetic surgery, self-inflicted injury, substance abuse treatment, experimental treatment, and pre-existing illness during waiting periods."
+FAQ016,coverage,Does motor insurance cover theft?,"Comprehensive motor insurance usually covers theft, subject to FIR submission, policy conditions, and claim verification."
+FAQ017,coverage,Does motor insurance cover drunk driving accidents?,No. Damage caused while driving under the influence of alcohol or drugs is generally excluded.
+FAQ018,coverage,Does motor insurance cover third-party liability?,"Yes, third-party liability is generally covered in motor insurance and is legally required in many cases."
+FAQ019,coverage,Does life insurance cover accidental death?,Many life insurance policies include accidental death coverage either by default or through an optional rider.
+FAQ020,coverage,Does life insurance cover suicide?,Suicide is usually excluded during an initial exclusion period. Coverage depends on policy wording and applicable regulations.
+FAQ021,claims,How do I file a claim?,"You need to select the relevant policy, provide claim type and incident details, submit required documents, and wait for insurer verification."
+FAQ022,claims,Can the assistant approve my claim?,"No. The assistant can help initiate or explain a claim, but final approval is handled by authorized claim reviewers or insurer systems."
+FAQ023,claims,What documents are needed for a health claim?,"Common documents include hospital bills, discharge summary, prescriptions, diagnostic reports, ID proof, policy details, and claim form."
+FAQ024,claims,What documents are needed for a motor claim?,"Common documents include vehicle registration, driving license, policy copy, repair estimate, photos, FIR if required, and claim form."
+FAQ025,claims,What documents are needed for a life insurance claim?,"Common documents include death certificate, nominee ID proof, policy document, claim form, medical records if applicable, and bank details."
+FAQ026,claims,Why was my claim rejected?,"Claims may be rejected due to exclusions, missing documents, policy lapse, non-disclosure, waiting period restrictions, or unsupported claim circumstances."
+FAQ027,claims,Can I appeal a rejected claim?,"Yes, you can request a review or escalate to a human agent with supporting documents and claim details."
+FAQ028,renewal,When should I renew my policy?,You should renew before the policy expiry date to avoid lapse and loss of continuity benefits.
+FAQ029,renewal,What is a grace period?,A grace period is extra time after the due date during which renewal may still be allowed. Coverage rules during this period depend on policy terms.
+FAQ030,renewal,Can I renew after grace period?,Renewal after grace period may require fresh underwriting or policy reinstatement. It may not always be allowed.
+FAQ031,billing,Where can I see my next bill date?,The assistant can fetch your next bill date from your policyholder records if you are logged in.
+FAQ032,billing,Why is my renewal premium different?,"Renewal premium can change due to age, claim history, revised pricing, risk category changes, add-ons, taxes, or underwriting updates."
+FAQ033,upgrade,Can I upgrade my policy?,"Policy upgrade may be possible depending on current policy, eligibility, underwriting approval, and available upgrade options."
+FAQ034,upgrade,Will upgrading increase premium?,"Usually yes. Higher coverage, extra benefits, riders, and lower deductibles generally increase premium."
+FAQ035,purchase,How do I buy a policy?,"You can choose a policy type, review recommended plans, select one policy, complete verification, confirm premium, and proceed with purchase."
+FAQ036,purchase,Can I compare policies?,"Yes. The assistant can compare policies based on premium, coverage amount, benefits, exclusions, and suitability."
+FAQ037,purchase,"What is the difference between Basic, Plus, and Premium?","Basic usually provides essential coverage, Plus offers balanced protection, and Premium provides broader coverage, higher limits, and more benefits."
+FAQ038,underwriting,What is underwriting?,Underwriting is the process of assessing risk before pricing or issuing an insurance policy.
+FAQ039,underwriting,Why does smoking affect premium?,"Smoking may increase health and life insurance risk, so it can increase premium or affect eligibility."
+FAQ040,underwriting,Why does claim history affect premium?,"Previous claims can indicate higher future claim probability, so they may influence risk category and premium."
+FAQ041,underwriting,Will my income affect premium?,Income usually affects affordability and product suitability more than direct health risk. It may help recommend appropriate coverage levels.
+FAQ042,underwriting,Can I change incorrect profile details?,Yes. Incorrect profile details should be corrected before underwriting or purchase because they can affect pricing and claim eligibility.
+FAQ043,rag_support,Can the assistant answer policy-specific coverage questions?,"Yes. The assistant can retrieve policy wording, coverage, exclusions, and benefits from the policy knowledge base."
+FAQ044,rag_support,What if I misspell the policy name?,The assistant uses semantic search to find close policy matches even when policy names are incomplete or misspelled.
+FAQ045,crm_escalation,When will my issue be escalated to a human agent?,"Escalation may happen for disputes, claim rejection review, high premium concerns, legal issues, complex underwriting, or user request for human support."
+FAQ046,crm_escalation,Can I talk to a senior agent?,Yes. The assistant can create a CRM ticket or handoff request when deeper human review is needed.
+FAQ047,security,Can another user see my policy details?,No. Policy details should only be fetched using authenticated user context provided by the backend session.
+FAQ048,security,Can I ask for someone else’s policy details?,No. The assistant should only provide details for policies linked to the authenticated user.
+FAQ049,limitations,Can the assistant guarantee claim payout?,No. The assistant cannot guarantee payout. Final decisions depend on insurer verification and policy terms.
+FAQ050,limitations,Can the assistant give legal advice?,"No. The assistant can explain insurance terms generally, but legal disputes or regulatory concerns should be escalated to a qualified human agent."
+FAQ051,policy_validity,How do I know if my policy is active?,"The assistant can check validity dates, next bill date, and grace period from your policyholder record after login."
+FAQ052,policy_validity,What happens if my policy expires?,"If your policy expires, benefits may stop and claims may be denied. Renewal or reinstatement depends on policy rules."
+FAQ053,recommendation,Why did the assistant recommend a high-risk policy?,"The recommendation may be based on your underwriting category, risk profile, coverage need, and suitable plans available for that category."
+FAQ054,recommendation,Can I choose a lower premium policy?,"Yes, but lower premium plans may have lower coverage, higher exclusions, or fewer benefits. The assistant can compare options."
+FAQ055,general,What is cashless hospitalization?,"Cashless hospitalization means the insurer directly settles eligible hospital bills with a network hospital, subject to approval and policy terms."
