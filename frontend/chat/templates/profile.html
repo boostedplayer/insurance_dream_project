@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Insurance AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800">
+
+  <header class="bg-white border-b border-slate-200 px-5 py-3 flex items-center justify-between shadow-sm sticky top-0 z-10">
+    <div class="flex items-center gap-2">
+      <span class="text-xl">🛡️</span>
+      <span class="font-semibold">Insurance AI</span>
+    </div>
+    <a href="{% url 'chat' %}" class="text-sm text-blue-600 hover:text-blue-700 font-medium">← Back to chat</a>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-slate-900">My Profile</h1>
+      <p class="text-sm text-slate-500 mt-1">
+        Complete your profile so we can calculate accurate risk-based premiums and recommend the right policies.
+      </p>
+    </div>
+
+    {% if saved %}
+      <div class="mb-5 px-4 py-3 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
+        ✓ Profile saved successfully.
+      </div>
+    {% endif %}
+    {% if error %}
+      <div class="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-8">
+      {% csrf_token %}
+
+      <!-- Account -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Account</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Full name</label>
+            <input name="name" value="{{ profile.name|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Email</label>
+            <input value="{{ profile.email|default:'' }}" disabled
+                   class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-400" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Personal -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Personal details</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Age</label>
+            <input name="age" type="number" min="18" max="70" value="{{ profile.age|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Gender</label>
+            <select name="gender" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+              <option {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">City</label>
+            <select name="city" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.city == 'Ahmedabad' %}selected{% endif %}>Ahmedabad</option>
+              <option {% if profile.city == 'Bangalore' %}selected{% endif %}>Bangalore</option>
+              <option {% if profile.city == 'Chennai' %}selected{% endif %}>Chennai</option>
+              <option {% if profile.city == 'Delhi' %}selected{% endif %}>Delhi</option>
+              <option {% if profile.city == 'Hyderabad' %}selected{% endif %}>Hyderabad</option>
+              <option {% if profile.city == 'Kolkata' %}selected{% endif %}>Kolkata</option>
+              <option {% if profile.city == 'Mumbai' %}selected{% endif %}>Mumbai</option>
+              <option {% if profile.city == 'Pune' %}selected{% endif %}>Pune</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Marital status</label>
+            <select name="marital_status" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.marital_status == 'Single' %}selected{% endif %}>Single</option>
+              <option {% if profile.marital_status == 'Married' %}selected{% endif %}>Married</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Dependents</label>
+            <input name="dependents" type="number" min="0" max="10" value="{{ profile.dependents|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Income category</label>
+            <select name="income_category" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.income_category == 'Low' %}selected{% endif %}>Low</option>
+              <option {% if profile.income_category == 'Lower Middle' %}selected{% endif %}>Lower Middle</option>
+              <option {% if profile.income_category == 'Middle' %}selected{% endif %}>Middle</option>
+              <option {% if profile.income_category == 'Upper Middle' %}selected{% endif %}>Upper Middle</option>
+              <option {% if profile.income_category == 'High' %}selected{% endif %}>High</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Occupation</label>
+            <select name="occupation" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              {% for o in occupations %}
+                <option {% if profile.occupation == o %}selected{% endif %}>{{ o }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Health -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="font-semibold text-slate-800 mb-4">Health</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">BMI</label>
+            <input name="bmi" type="number" step="0.1" min="16" max="41" value="{{ profile.bmi|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Smoker</label>
+            <select name="smoker" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="No" {% if not profile.smoker %}selected{% endif %}>No</option>
+              <option value="Yes" {% if profile.smoker %}selected{% endif %}>Yes</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Chronic disease</label>
+            <select name="chronic_disease" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="No" {% if not profile.chronic_disease %}selected{% endif %}>No</option>
+              <option value="Yes" {% if profile.chronic_disease %}selected{% endif %}>Yes</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Alcohol consumption</label>
+            <select name="alcohol_consumption" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.alcohol_consumption == 'None' %}selected{% endif %}>None</option>
+              <option {% if profile.alcohol_consumption == 'Occasional' %}selected{% endif %}>Occasional</option>
+              <option {% if profile.alcohol_consumption == 'Frequent' %}selected{% endif %}>Frequent</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Exercise frequency</label>
+            <select name="exercise_frequency" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">—</option>
+              <option {% if profile.exercise_frequency == 'Never' %}selected{% endif %}>Never</option>
+              <option {% if profile.exercise_frequency == 'Rarely' %}selected{% endif %}>Rarely</option>
+              <option {% if profile.exercise_frequency == 'Weekly' %}selected{% endif %}>Weekly</option>
+              <option {% if profile.exercise_frequency == 'Daily' %}selected{% endif %}>Daily</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Past claims</label>
+            <input name="claims_history" type="number" min="0" max="20" value="{{ profile.claims_history|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Vehicle (for motor insurance) -->
+      <section class="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 class="font-semibold text-slate-800 mb-1">Vehicle <span class="text-xs font-normal text-slate-400">(for motor insurance)</span></h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Vehicle age (years)</label>
+            <input name="vehicle_age" type="number" min="0" max="30" value="{{ profile.vehicle_age|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Driving violations</label>
+            <input name="driving_violations" type="number" min="0" max="20" value="{{ profile.driving_violations|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-600 mb-1">Annual mileage (km)</label>
+            <input name="annual_mileage" type="number" min="0" max="100000" value="{{ profile.annual_mileage|default:'' }}"
+                   class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+      </section>
+
+      <div class="flex justify-end gap-3">
+        <a href="{% url 'chat' %}" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 text-sm font-medium hover:bg-slate-100">Cancel</a>
+        <button type="submit" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold">Save profile</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

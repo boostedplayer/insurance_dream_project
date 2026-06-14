@@ -1,0 +1,38 @@
+# ── AI / LangGraph wale packages ────────────────────────────────────────────────
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.0.0
+langchain-huggingface>=0.1.0
+langgraph>=0.2.0
+langgraph-checkpoint-postgres>=2.0.0
+
+# ── Database ka saman ──────────────────────────────────────────────────────────
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0      # sync wala SQLAlchemy engine (db.py, auth, admin ke liye)
+psycopg[binary]>=3.1.0      # async checkpointer pool (graph.py ke liye)
+psycopg-pool>=3.2.0         # AsyncConnectionPool banaane ke liye
+
+# ── FastAPI backend wale packages ─────────────────────────────────────────────
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt<4.0.0               # passlib 1.7.4 bcrypt 4.x ke saath compatible nahi — detect_wrap_bug fail hoti hai
+razorpay>=1.4.0
+
+# ── Vector DB ka pakka intezaam ───────────────────────────────────────────────
+pinecone>=3.0.0
+
+# ── ML aur Data wale tools ────────────────────────────────────────────────────
+joblib>=1.3.0
+scikit-learn==1.6.1          # best_mode2.pk1 isi version se save hua tha — upgrade mat karo
+numpy>=1.26.0
+pandas>=2.0.0
+
+# ── Kaam ki utilities ─────────────────────────────────────────────────────────
+python-dotenv>=1.0.0
+pydantic[email]>=2.0.0
+
+# ── Django frontend wale packages ─────────────────────────────────────────────
+django>=5.0.0
+requests>=2.31.0

@@ -1,13 +1,21 @@
-from pinecone import Pinecone,ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from dotenv import load_dotenv
-from agent.graph import embedding_model
+
 import pandas as pd
 import os
 
 load_dotenv()
-api_key = os.getenv("PINECONE_API_KEY")
+api_key   = os.getenv("PINECONE_API_KEY")
+_hf_token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
-index_name = "insurance_policy_rag"
+# Seedha embedding model bana lo — agent.graph import mat karo (woh ML model bhi load karta hai)
+embedding_model = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-MiniLM-L6-v2",
+    huggingfacehub_api_token=_hf_token,
+)
+
+index_name = "insurance-policy-rag"
 vector_dimension = 384
 
 pc = Pinecone(api_key=api_key)
@@ -17,7 +25,7 @@ existing_index = pc.list_indexes().names()
 
 if index_name not in existing_index:
 
-    pc.create_index(  #use to create index
+    pc.create_index(  #index banana ke liye use karo
         name=index_name,
         dimension=vector_dimension,
         metric='cosine',
@@ -31,8 +39,8 @@ if index_name not in existing_index:
 else:
     print(f"index already exists : {index_name}")
 
-index = pc.Index(index_name) #use to connect to index.
-#returns index client object
+index = pc.Index(index_name) #index se connect karne ke liye use karo
+#index client object return karta hai
 
 vectors = []
 
@@ -48,8 +56,7 @@ for _, row in df.iterrows():
     risk category : {row['risk_category']}
     description : {row['policy_description']}
     coverage : {row['what_covers']}
-    exclusions : {row['what_doesnt_covers']}
-    addition benefits : {row['additional_benefits']}
+    exclusions : {row['what_does_not_cover']}
     """
 
     embedding = embedding_model.embed_query(
@@ -76,10 +83,9 @@ for _, row in df.iterrows():
 
             "what_covers": row["what_covers"],
 
-            "what_does_not_cover": row["what_doesnt_covers"],
+            "what_does_not_cover": row["what_does_not_cover"],
 
-            "additional_benefits": row["additional_benefits"],
-            "full_text" : text_to_embed
+            "full_text": text_to_embed
         }
     })
 
@@ -88,7 +94,7 @@ batch_size = 50
 for i in range(0,len(vectors),batch_size):
 
     batch = vectors[i:i+batch_size]
-    
+
     index.upsert(vectors=batch,namespace="insurance-policies")
 
     print(f"uploaded batch {i // batch_size + 1}")

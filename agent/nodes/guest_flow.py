@@ -9,25 +9,38 @@ from agent.state.user import User
 from agent.db.db import engine
 
 
+def _as_text(content) -> str:
+    """Message content ko string banao — Gemini list-of-blocks deta hai, baaki string."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "".join(
+            b.get("text", "") if isinstance(b, dict) and b.get("type") == "text"
+            else (b if isinstance(b, str) else "")
+            for b in content
+        )
+    return str(content) if content else ""
+
+
 def check_user(state:OrchestrationState):
 
     with engine.connect() as conn:
        data = conn.execute(
             text("""
-        SELECT * FROM users 
+        SELECT * FROM users
         WHERE user_id = :user_id
             """),
         {"user_id":state.auth_user_id}
         )
-       
+
        data = data.fetchone()
 
     if data:
         user_dict =dict(data._mapping)
-        return {'user_valid':True, 'user_info':User(**user_dict)} #to avoid mutating
+        return {'user_valid':True, 'user_info':User(**user_dict)} #directly mutate mat karo, isliye alag se return kar rahe hain
     else:
         return {"user_valid":False}
-    
+
 
 def guest_flow(state:OrchestrationState):
     msg = AIMessage(content="Hi, welcome to our insurance assistant. can i get your name please?")
@@ -43,10 +56,10 @@ def ask_name(state:OrchestrationState):
     for msg in reversed(state.text):
 
         if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = msg.content
+            latest_human_message = _as_text(msg.content)
 
         if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = msg.content
+            latest_model_message = _as_text(msg.content)
 
         if latest_human_message and latest_model_message:
             break
@@ -67,14 +80,14 @@ def ask_name(state:OrchestrationState):
             update = {"text":[res],"guest_info":update},
             goto = "ask_email"
         )
-    
+
     res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her name, appreciate his last concern, tell him politely that you will get back to that concern after getting details, again ask user politey for his name"),*state.text])
     return Command(
         update = {'text':[res]},
         goto = "ask_name"
     )
-      
-    
+
+
 
 def ask_email(state:OrchestrationState):
 
@@ -84,14 +97,14 @@ def ask_email(state:OrchestrationState):
     for msg in reversed(state.text):
 
         if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = msg.content
+            latest_human_message = _as_text(msg.content)
 
         if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = msg.content
+            latest_model_message = _as_text(msg.content)
 
         if latest_human_message and latest_model_message:
             break
-    
+
     output = info_extractor.invoke(latest_human_message)
     text = validation_prompt.format(
         model_ques = latest_model_message,
@@ -114,7 +127,7 @@ def ask_email(state:OrchestrationState):
         update={'text':[res]},
         goto = "ask_email"
     )
-    
+
 
 
 def ask_number(state:OrchestrationState):
@@ -125,14 +138,14 @@ def ask_number(state:OrchestrationState):
     for msg in reversed(state.text):
 
         if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = msg.content
+            latest_human_message = _as_text(msg.content)
 
         if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = msg.content
+            latest_model_message = _as_text(msg.content)
 
         if latest_human_message and latest_model_message:
             break
-    
+
     output = info_extractor.invoke(latest_human_message)
     text = validation_prompt.format(
         model_ques = latest_model_message,
@@ -149,7 +162,7 @@ def ask_number(state:OrchestrationState):
             update = {'text':[res],'guest_info':update},
             goto = 'ask_pincode'
         )
-    
+
     res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her number, appreciate his last concern if he had any, tell him politely that you will get back to that concern after getting details, again ask user politey for his number"),*state.text])
     return Command(
         update = {'text':[res]},
@@ -160,21 +173,21 @@ def ask_number(state:OrchestrationState):
 
 
 def ask_pincode(state:OrchestrationState):
-    
+
     latest_human_message = ""
     latest_model_message = ""
 
     for msg in reversed(state.text):
 
         if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = msg.content
+            latest_human_message = _as_text(msg.content)
 
         if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = msg.content
+            latest_model_message = _as_text(msg.content)
 
         if latest_human_message and latest_model_message:
             break
-    
+
     output = info_extractor.invoke(latest_human_message)
     text = validation_prompt.format(
         model_ques = latest_model_message,
@@ -192,14 +205,36 @@ def ask_pincode(state:OrchestrationState):
             update ={"text":[res],"guest_info": updated},
             goto = 'login_popup'
         )
-    
+
     res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her pincode, appreciate his last concern if he had any, tell him politely that you will get back to that concern after getting details, again ask user politey for his pincode"),*state.text])
     return Command(
             update ={"text":[res]},
             goto = 'ask_pincode'
         )
 
-def login_popup(state:OrchestrationState):
-    """ 
-    will be done by django
-    """
+def login_popup(state: OrchestrationState):
+    info = state.guest_info
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO guest_leads (name, email, number, pincode)
+                    VALUES (:name, :email, :number, :pincode)
+                """),
+                {
+                    "name":    info.name,
+                    "email":   info.email,
+                    "number":  info.number,
+                    "pincode": info.pincode,
+                }
+            )
+    except Exception:
+        pass  # DB error aaye toh bhi chat band mat karo
+
+    msg = AIMessage(content=(
+        f"Thank you, {info.name or 'there'}! Your details have been saved. 🎉\n\n"
+        "To access full insurance services — purchase a policy, file a claim, or manage renewals — "
+        "please sign in or create a free account.\n\n"
+        "👉 Click Sign In or Register at the top of the page to continue."
+    ))
+    return {"text": [msg]}

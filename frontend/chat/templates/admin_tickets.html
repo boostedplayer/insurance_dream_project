@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Tickets — Insurance AI Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">🛡️</span>
+      <span class="font-semibold text-slate-800">Insurance AI</span>
+      <span class="text-slate-300">|</span>
+      <span class="text-slate-600 font-medium">Support Tickets</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="{% url 'admin_claims' %}" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">Claims Review</a>
+      <a href="{% url 'chat' %}" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">Chat</a>
+      <a href="{% url 'logout' %}" class="text-sm text-slate-500 hover:text-red-600 transition-colors">Sign out</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8">
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-slate-800">Open Support Tickets</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Escalated support requests and CRM tickets</p>
+      </div>
+      <span class="text-sm bg-blue-100 text-blue-800 font-semibold px-3 py-1 rounded-full">
+        {{ tickets|length }} open
+      </span>
+    </div>
+
+    {% if not tickets %}
+    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+      <div class="text-4xl mb-3">🎉</div>
+      <p class="text-slate-600 font-medium">No open tickets</p>
+      <p class="text-slate-400 text-sm mt-1">All support tickets have been resolved.</p>
+    </div>
+    {% else %}
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-50 border-b border-slate-200">
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">Ticket #</th>
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">User ID</th>
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">Reason</th>
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">Context</th>
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">Filed</th>
+            <th class="text-left px-4 py-3 font-semibold text-slate-600">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ticket in tickets %}
+          <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors" id="ticket-{{ ticket.ticket_id }}">
+            <td class="px-4 py-3 font-medium text-slate-800">#{{ ticket.ticket_id }}</td>
+            <td class="px-4 py-3 text-slate-600">{{ ticket.user_id }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ ticket.reason }}</td>
+            <td class="px-4 py-3 text-slate-500 max-w-xs truncate" title="{{ ticket.context }}">
+              {{ ticket.context|default:"—" }}
+            </td>
+            <td class="px-4 py-3 text-slate-400 whitespace-nowrap">{{ ticket.created_at }}</td>
+            <td class="px-4 py-3">
+              <button
+                onclick="closeTicket({{ ticket.ticket_id }})"
+                class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition-colors"
+                id="btn-{{ ticket.ticket_id }}"
+              >
+                Close
+              </button>
+              <span id="msg-{{ ticket.ticket_id }}" class="text-xs text-green-600 ml-2 hidden">Closed</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% endif %}
+  </main>
+
+</body>
+
+<script>
+function csrfToken() {
+  return document.cookie.split(';').map(c => c.trim())
+    .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+async function closeTicket(ticketId) {
+  const btn = document.getElementById(`btn-${ticketId}`);
+  const msg = document.getElementById(`msg-${ticketId}`);
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const resp = await fetch(`/admin/tickets/${ticketId}/close/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken() },
+    });
+
+    if (resp.ok) {
+      btn.classList.add('hidden');
+      msg.classList.remove('hidden');
+      const row = document.getElementById(`ticket-${ticketId}`);
+      if (row) row.style.opacity = '0.4';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Close';
+    }
+  } catch {
+    btn.disabled = false;
+    btn.textContent = 'Close';
+  }
+}
+</script>
+</html>

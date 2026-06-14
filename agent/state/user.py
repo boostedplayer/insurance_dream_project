@@ -1,6 +1,13 @@
 from pydantic import BaseModel,Field,EmailStr
-from typing import List,Optional,Annotated
+from typing import List,Optional,Annotated,Literal
 from uuid import uuid4
+
+
+class RouteDecision(BaseModel):
+    """Orchestrator ka routing decision — user ki intent kaunsi flow ko jaani chahiye."""
+    flow: Literal["support", "purchase", "renewal", "claim", "general"] = Field(
+        description="The single best-matching flow for the user's latest message"
+    )
 
 
 class User(BaseModel):

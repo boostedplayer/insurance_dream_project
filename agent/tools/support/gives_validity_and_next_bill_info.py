@@ -1,43 +1,62 @@
+from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
-from agent.db import engine,text
+from agent.db.db import engine
+from sqlalchemy import text
 
-def gives_validity_and_next_bill_info(config:RunnableConfig):
+
+@tool
+def gives_validity_and_next_bill_info(config: RunnableConfig) -> dict:
     """
-    it gonna return you details that include (valid from, valid upto, next_bill, policy_name, grace_period) of all the policies that user is having.
+    Tab use karo jab user apni policy ki validity, expiry date, next billing date, ya grace period ke baare mein pooche.
+    Examples: 'when does my policy expire?', 'when is my next payment due?', 'is my policy still active?'
 
+    User ke paas jo bhi policies hain unke liye valid_from, valid_upto, next_bill, aur grace_period return karta hai.
     """
-
     auth_user_id = config["configurable"]["auth_user_id"]
-    with engine.connect() as conn:
-        rows = conn.execute(text("""
 
-        SELECT * FROM policyholder WHERE user_id = :auth_user_id
-    
-        """),{'user_id':auth_user_id}).fetchall()
-        if not rows:
-            return { "status": "no_policy_found",
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT
+                    ph.holder_id,
+                    ph.policy_id,
+                    p.policy_name,
+                    p.policy_type,
+                    ph.valid_from,
+                    ph.next_bill,
+                    ph.up_to,
+                    ph.grace_period
+                FROM policyholder ph
+                JOIN policy p ON ph.policy_id = p.policy_id
+                WHERE ph.user_id = :user_id
+            """),
+            {"user_id": auth_user_id}
+        ).fetchall()
+
+    if not rows:
+        return {
+            "status": "no_policy_found",
             "user_has_policy": False,
             "message": "User does not currently hold any insurance policy."
-            }
+        }
+
     policies = []
-
     for row in rows:
-
         row = dict(row._mapping)
-
         policies.append({
-            "policy_id": row["policy_id"],
-            "policy_name": row["policy_name"],
-            "valid_from": str(row["valid_from"]),
-            "next_bill": str(row["next_bill"]),
-            "valid_upto": str(row["up_to"]),
-            "grace_period_days": row["grace_period"]
+            "holder_id":        row["holder_id"],
+            "policy_id":        row["policy_id"],
+            "policy_name":      row["policy_name"],
+            "policy_type":      row["policy_type"],
+            "valid_from":       str(row["valid_from"]),
+            "next_bill":        str(row["next_bill"]),
+            "valid_upto":       str(row["up_to"]),
+            "grace_period_days": str(row["grace_period"]),
         })
-        
+
     return {
         "status": "success",
         "user_has_policy": True,
         "total_policies": len(policies),
         "policies": policies,
-        "message": "you can ask the user that of which policy you want to get the details."
     }

@@ -1,3 +1,33 @@
+# Environment
 .env
 env/
+.venv/
+venv/
+
+# ML model & datasets (too large / regeneratable)
+*.pk1
+*.pkl
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Django
+django_sessions/
+*.log
+db.sqlite3
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Redis playground (local dev only)
 redis_playground/

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claims Review — Insurance AI Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+      <span class="text-xl">🛡️</span>
+      <span class="font-semibold text-slate-800">Insurance AI</span>
+      <span class="text-slate-300">|</span>
+      <span class="text-slate-600 font-medium">Claims Review</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="{% url 'admin_tickets' %}" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">Support Tickets</a>
+      <a href="{% url 'chat' %}" class="text-sm text-slate-500 hover:text-blue-600 transition-colors">Chat</a>
+      <a href="{% url 'logout' %}" class="text-sm text-slate-500 hover:text-red-600 transition-colors">Sign out</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <div class="mb-6 flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-slate-800">Pending Claims</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Claims flagged for human review</p>
+      </div>
+      <span class="text-sm bg-amber-100 text-amber-800 font-semibold px-3 py-1 rounded-full">
+        {{ claims|length }} pending
+      </span>
+    </div>
+
+    {% if not claims %}
+    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+      <div class="text-4xl mb-3">✅</div>
+      <p class="text-slate-600 font-medium">No claims pending review</p>
+      <p class="text-slate-400 text-sm mt-1">All claims have been processed.</p>
+    </div>
+    {% else %}
+
+    <div class="space-y-4">
+      {% for claim in claims %}
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6" id="claim-{{ claim.claim_id }}">
+
+        <!-- Claim header -->
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-800">Claim #{{ claim.claim_id }}</span>
+              <span class="text-xs px-2 py-0.5 rounded-full
+                {% if claim.routing == 'escalate_crm' %}bg-red-100 text-red-700
+                {% else %}bg-amber-100 text-amber-700{% endif %}">
+                {{ claim.routing|default:"human_review" }}
+              </span>
+            </div>
+            <p class="text-sm text-slate-500 mt-0.5">{{ claim.policy_name }} • {{ claim.claim_type }}</p>
+          </div>
+          <span class="text-sm text-slate-400">Filed: {{ claim.filed_at|default:"—" }}</span>
+        </div>
+
+        <!-- Claim details grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500 font-medium">Claimed Amount</p>
+            <p class="font-bold text-slate-800 mt-0.5">₹{{ claim.claim_amount }}</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500 font-medium">Assessed Amount</p>
+            <p class="font-bold text-slate-800 mt-0.5">{% if claim.assessed_amount %}₹{{ claim.assessed_amount }}{% else %}—{% endif %}</p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500 font-medium">Fraud Score</p>
+            <p class="font-bold mt-0.5
+              {% if claim.fraud_score >= 65 %}text-red-600
+              {% elif claim.fraud_score >= 35 %}text-amber-600
+              {% else %}text-green-600{% endif %}">
+              {{ claim.fraud_score|default:"—" }}%
+            </p>
+          </div>
+          <div class="bg-slate-50 rounded-lg p-3">
+            <p class="text-xs text-slate-500 font-medium">Status</p>
+            <p class="font-bold text-slate-800 mt-0.5">{{ claim.status }}</p>
+          </div>
+        </div>
+
+        <!-- Incident description -->
+        {% if claim.incident_description %}
+        <div class="bg-blue-50 rounded-lg p-3 mb-4">
+          <p class="text-xs text-blue-600 font-medium mb-1">Incident Description</p>
+          <p class="text-sm text-slate-700">{{ claim.incident_description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Decision form -->
+        <div class="border-t border-slate-100 pt-4">
+          <p class="text-sm font-semibold text-slate-700 mb-3">Your Decision</p>
+          <div class="flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="block text-xs text-slate-500 mb-1">Approved Amount (₹)</label>
+              <input
+                type="number" id="amount-{{ claim.claim_id }}" placeholder="Enter amount"
+                class="w-40 px-3 py-2 border border-slate-300 rounded-lg text-sm
+                       focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div class="flex-1 min-w-48">
+              <label class="block text-xs text-slate-500 mb-1">Notes</label>
+              <input
+                type="text" id="notes-{{ claim.claim_id }}" placeholder="Optional agent notes"
+                class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm
+                       focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              onclick="decide({{ claim.claim_id }}, 'approved')"
+              class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg text-sm transition-colors"
+            >
+              Approve
+            </button>
+            <button
+              onclick="decide({{ claim.claim_id }}, 'rejected')"
+              class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg text-sm transition-colors"
+            >
+              Reject
+            </button>
+          </div>
+          <p id="msg-{{ claim.claim_id }}" class="text-sm mt-2 hidden"></p>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    {% endif %}
+  </main>
+
+</body>
+
+<script>
+function csrfToken() {
+  return document.cookie.split(';').map(c => c.trim())
+    .find(c => c.startsWith('csrftoken='))?.split('=')[1] || '';
+}
+
+async function decide(claimId, verdict) {
+  const amount = document.getElementById(`amount-${claimId}`).value;
+  const notes  = document.getElementById(`notes-${claimId}`).value;
+  const msgEl  = document.getElementById(`msg-${claimId}`);
+
+  if (verdict === 'approved' && !amount) {
+    msgEl.textContent = 'Please enter an approved amount.';
+    msgEl.className = 'text-sm mt-2 text-red-600';
+    msgEl.classList.remove('hidden');
+    return;
+  }
+
+  const body = { verdict, agent_notes: notes || null };
+  if (amount) body.approved_amount = parseFloat(amount);
+
+  try {
+    const resp = await fetch(`/admin/claims/${claimId}/decision/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken(),
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await resp.json();
+
+    if (resp.ok) {
+      msgEl.textContent = data.message || 'Decision submitted.';
+      msgEl.className = 'text-sm mt-2 text-green-600';
+      msgEl.classList.remove('hidden');
+      // Fade out the card after 1.5s
+      setTimeout(() => {
+        const card = document.getElementById(`claim-${claimId}`);
+        if (card) card.style.opacity = '0.3';
+      }, 1500);
+    } else {
+      msgEl.textContent = data.detail || 'Error submitting decision.';
+      msgEl.className = 'text-sm mt-2 text-red-600';
+      msgEl.classList.remove('hidden');
+    }
+  } catch {
+    msgEl.textContent = 'Network error. Please try again.';
+    msgEl.className = 'text-sm mt-2 text-red-600';
+    msgEl.classList.remove('hidden');
+  }
+}
+</script>
+</html>

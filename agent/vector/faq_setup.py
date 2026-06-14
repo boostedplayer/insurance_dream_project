@@ -1,16 +1,23 @@
 from pinecone import Pinecone, ServerlessSpec
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from dotenv import load_dotenv
-from agent.graph import embedding_model
 
 import pandas as pd
 import os
 
 load_dotenv()
-api_key = os.getenv("PINECONE_API_KEY")
+api_key   = os.getenv("PINECONE_API_KEY")
+_hf_token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
-#create index and dimensions
+# Seedha embedding model bana lo — agent.graph import mat karo (woh ML model bhi load karta hai)
+embedding_model = HuggingFaceEndpointEmbeddings(
+    model="sentence-transformers/all-MiniLM-L6-v2",
+    huggingfacehub_api_token=_hf_token,
+)
 
-index_name = "faq_rag"
+# Index aur uski dimensions banao
+
+index_name = "faq-rag"
 vector_dimension = 384
 
 pc = Pinecone(api_key = api_key)
@@ -26,7 +33,7 @@ if index_name not in existing_index:
         dimension=vector_dimension,
         metric = 'cosine',
         spec = ServerlessSpec(
-            cloud = 'aws', 
+            cloud = 'aws',
             region = 'us-east-1'
         )
     )
@@ -37,7 +44,7 @@ else:
     print(f"index already exists : {index_name}")
 
 
-index = pc.Index(index_name) # to connect with index.
+index = pc.Index(index_name) # Index se connection jod do.
 
 
 df = pd.read_csv("insurance_faq_dataset.csv")
