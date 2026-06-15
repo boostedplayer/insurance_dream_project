@@ -11,8 +11,7 @@ DB_URL = os.getenv(
 
 engine = create_engine(DB_URL)
 
-# engine.connect() → sirf connection kholta hai, manually commit karna padega
-# engine.begin()   → connection + transaction dono kholta hai, exit pe auto-commit ho jaata hai
+# connect() doesn't auto-commit; begin() wraps in a transaction and commits on exit
 
 with engine.begin() as conn:
     print("Connected successfully!")
@@ -44,7 +43,7 @@ with engine.begin() as conn:
         );
     """))
 
-    # policy table — CSV columns aur tool expectations ke saath match kiya hua hai
+    # policy table — columns matched against CSV and tool expectations
     conn.execute(text("""
         CREATE TABLE IF NOT EXISTS policy (
             policy_id         SERIAL PRIMARY KEY,
@@ -84,8 +83,7 @@ with engine.begin() as conn:
         );
     """))
 
-    # underwriting_results — policy fields nullable hain kyunki inquiry-level records mein
-    # abhi koi policy select nahi hui hoti
+    # policy fields nullable — inquiry-level rows don't have a policy selected yet
     conn.execute(text("""
         CREATE TABLE IF NOT EXISTS underwriting_results (
             underwriting_id SERIAL PRIMARY KEY,
@@ -139,7 +137,19 @@ with engine.begin() as conn:
         );
     """))
 
-    # ChatGPT-style sidebar ke liye — har user ke chat sessions ka index
+    # raw answers from the 30-MCQ onboarding questionnaire — kept for audit + future retraining
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS risk_questionnaire_responses (
+            response_id   SERIAL PRIMARY KEY,
+            user_id       INTEGER NOT NULL REFERENCES users(user_id),
+            answers       JSONB NOT NULL,
+            risk_score    FLOAT,
+            risk_category VARCHAR(30),
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """))
+
+    # per-user chat session index for the sidebar
     conn.execute(text("""
         CREATE TABLE IF NOT EXISTS chat_sessions (
             session_id  TEXT PRIMARY KEY,
@@ -150,7 +160,7 @@ with engine.begin() as conn:
         );
     """))
 
-    # Purane deployments mein jo columns nahi hain unhe yahan add kar do
+    # backfill cols missing from older deployments
     conn.execute(text("ALTER TABLE policyholder ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active'"))
     conn.execute(text("ALTER TABLE policyholder ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP"))
     conn.execute(text("ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS order_type TEXT NOT NULL DEFAULT 'purchase'"))
@@ -162,5 +172,7 @@ with engine.begin() as conn:
     conn.execute(text("ALTER TABLE claim ADD COLUMN IF NOT EXISTS human_agent_notes TEXT"))
     conn.execute(text("ALTER TABLE claim ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
     conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT"))
+    # tracks whether user finished the onboarding risk questionnaire
+    conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS risk_profile_completed BOOLEAN NOT NULL DEFAULT false"))
 
     print("Tables ready.")

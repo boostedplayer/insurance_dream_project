@@ -9,7 +9,7 @@ load_dotenv()
 api_key   = os.getenv("PINECONE_API_KEY")
 _hf_token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
-# Seedha embedding model bana lo — agent.graph import mat karo (woh ML model bhi load karta hai)
+# don't import agent.graph here, it loads the ML model too
 embedding_model = HuggingFaceEndpointEmbeddings(
     model="sentence-transformers/all-MiniLM-L6-v2",
     huggingfacehub_api_token=_hf_token,
@@ -25,7 +25,7 @@ existing_index = pc.list_indexes().names()
 
 if index_name not in existing_index:
 
-    pc.create_index(  #index banana ke liye use karo
+    pc.create_index(
         name=index_name,
         dimension=vector_dimension,
         metric='cosine',
@@ -39,8 +39,7 @@ if index_name not in existing_index:
 else:
     print(f"index already exists : {index_name}")
 
-index = pc.Index(index_name) #index se connect karne ke liye use karo
-#index client object return karta hai
+index = pc.Index(index_name)
 
 vectors = []
 

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, Dict, Any
 
 
 class RegisterRequest(BaseModel):
@@ -19,6 +19,8 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user_id: int
     name: str
+    # frontend uses this to decide whether to show questionnaire before chat
+    risk_profile_completed: bool = False
 
 
 class UserProfile(BaseModel):
@@ -27,10 +29,22 @@ class UserProfile(BaseModel):
     email: str
     city: Optional[str] = None
     is_active: bool
+    risk_profile_completed: bool = False
+
+
+class QuestionnaireSubmit(BaseModel):
+    """30-MCQ answers — {question_key: chosen_value}."""
+    answers: Dict[str, Any]
+
+
+class QuestionnaireStatus(BaseModel):
+    completed: bool
+    risk_score: Optional[float] = None
+    risk_category: Optional[str] = None
 
 
 class ProfileFull(BaseModel):
-    """Poora user profile — ML risk scoring ke saare demographic fields ke saath."""
+    """full user profile including all demographic fields used for ML risk scoring."""
     user_id: int
     name: Optional[str] = None
     email: Optional[str] = None
@@ -53,7 +67,7 @@ class ProfileFull(BaseModel):
 
 
 class ProfileUpdate(BaseModel):
-    """Profile update — saare fields optional, jo bheje wahi update honge."""
+    """all fields optional — only sent fields get updated."""
     name: Optional[str] = None
     city: Optional[str] = None
     age: Optional[int] = None

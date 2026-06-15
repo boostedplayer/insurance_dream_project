@@ -26,6 +26,8 @@ class OrchestrationState(BaseModel):
 
     # Guest onboarding info (collected before login)
     guest_info: GuestResponseExtract = Field(default_factory=GuestResponseExtract)
+    # Kaunsa detail abhi collect ho raha hai: 'greet' → 'name' → 'email' → 'number' → 'pincode' → 'done'
+    guest_stage: str = Field(default="greet")
 
     # Which flow is currently active — orchestrator uses this to maintain context
     # Values: 'support' | 'purchase' | 'renewal' | 'claim' | None

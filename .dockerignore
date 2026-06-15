@@ -1,0 +1,13 @@
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.git
+.gitignore
+*.log
+*.egg-info
+dist/
+build/
+redis_playground/

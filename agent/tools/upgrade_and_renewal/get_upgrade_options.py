@@ -7,14 +7,10 @@ from sqlalchemy import text
 @tool
 def get_upgrade_options(holder_id: int, config: RunnableConfig) -> dict:
     """
-    Jab user apni existing policy ko better wali mein upgrade karna chahta ho tab use karo.
-    Same policy type ke saare available upgrade options dikhata hai jisme zyada coverage ya premium ho.
-
-    Examples: 'I want to upgrade my health policy', 'what are my upgrade options?',
-              'is there a better plan available?'.
-
-    holder_id — policyholder ka ID (get_user_policies ya conversation context se milega).
-    Returns: upgrade options ki list with pricing, taaki user choose kar sake.
+    use when user wants to upgrade their existing policy to a better plan.
+    shows all higher-tier options of the same policy type.
+    holder_id: policyholder id (from get_user_policies or conversation).
+    returns list of upgrade options with pricing.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -38,7 +34,7 @@ def get_upgrade_options(holder_id: int, config: RunnableConfig) -> dict:
 
         current = dict(current._mapping)
 
-        # Same type ki policies dhundo jinka base_premium zyada ho (upgrade ke candidates)
+        # find same-type policies with higher base_premium — those are upgrade candidates
         options = conn.execute(
             text("""
                 SELECT policy_id, policy_name, policy_type, base_premium,

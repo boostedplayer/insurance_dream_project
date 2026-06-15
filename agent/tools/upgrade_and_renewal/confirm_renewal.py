@@ -13,12 +13,10 @@ load_dotenv()
 @tool
 def confirm_renewal(payment_link_id: str, config: RunnableConfig) -> dict:
     """
-    Jab user bole ki usne renewal payment kar di
-    ('I paid', 'done', 'renewed', 'extend my policy'), tab is tool ko use karo.
-    Payment verify karo aur policy ki validity ko agle tenure tak badha do.
-
-    payment_link_id — woh Razorpay link ID jo create_renewal_payment ne return kiya tha.
-    Returns: updated policy expiry dates.
+    use when user says they've completed renewal payment.
+    verifies payment and extends policy validity to the next tenure.
+    payment_link_id: the razorpay link id returned by create_renewal_payment.
+    returns updated policy expiry dates.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -40,7 +38,7 @@ def confirm_renewal(payment_link_id: str, config: RunnableConfig) -> dict:
         ).fetchone()
 
         if not order:
-            # Fallback: sabse latest pending renewal order dhundo
+            # fallback: find the latest pending renewal order
             order = conn.execute(
                 text("""
                     SELECT po.order_id, po.policy_id, po.status, po.razorpay_order_id,
@@ -91,7 +89,7 @@ def confirm_renewal(payment_link_id: str, config: RunnableConfig) -> dict:
     if payments:
         payment_id = payments[0].get("payment_id") or payments[0].get("id")
 
-    # Nayi validity: purani up_to ke baad se shuru karo + 1 din (seamless continuation ke liye)
+    # new validity starts the day after old up_to for seamless continuation
     old_up_to    = order["up_to"] if order["up_to"] else date.today()
     tenure       = order["policy_tenure"]
     tenure_days  = tenure.days if hasattr(tenure, "days") else 365

@@ -21,7 +21,7 @@ def get_faq_answer(query: str) -> dict:
     Searches the FAQ knowledge base and returns the most relevant answer.
     Do NOT use this for user-specific policy details — use the other tools for that.
     """
-    from agent.graph import embedding_model  # Circular import se bachne ke liye yahan import karo, module load pe nahi
+    from agent.graph import embedding_model  # late import to avoid circular dep
 
     query_embedding = embedding_model.embed_query(query)
 

@@ -7,10 +7,8 @@ from sqlalchemy import text
 @tool
 def gives_validity_and_next_bill_info(config: RunnableConfig) -> dict:
     """
-    Tab use karo jab user apni policy ki validity, expiry date, next billing date, ya grace period ke baare mein pooche.
-    Examples: 'when does my policy expire?', 'when is my next payment due?', 'is my policy still active?'
-
-    User ke paas jo bhi policies hain unke liye valid_from, valid_upto, next_bill, aur grace_period return karta hai.
+    use when user asks about policy validity, expiry, next billing date, or grace period.
+    returns valid_from, valid_upto, next_bill, and grace_period for all held policies.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

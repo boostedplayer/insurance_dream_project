@@ -8,15 +8,10 @@ from datetime import date
 @tool
 def get_renewal_summary(policy_name: str, config: RunnableConfig) -> dict:
     """
-    Jab user koi existing policy renew karna chahe tab use karo.
-    Current policy ka status, expiry date, aur renewal premium payment se pehle dikhata hai.
-    Pehle yahi call karo — renewal payment order banane se pehle.
-
-    Examples: 'I want to renew my health policy', 'renew SecureHealth Plus',
-              'my policy is expiring soon, renew it'.
-
-    policy_name — jis policy ko renew karna hai uska naam (conversation ya get_user_policies se lo).
-    Returns: holder_id, expiry, grace period status, aur renewal premium.
+    use when user wants to renew an existing policy. call this before creating a renewal payment.
+    shows current status, expiry date, and renewal premium upfront.
+    policy_name: name of the policy to renew (from conversation or get_user_policies).
+    returns holder_id, expiry, grace period status, and renewal premium.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -72,9 +67,9 @@ def get_renewal_summary(policy_name: str, config: RunnableConfig) -> dict:
     up_to       = row["up_to"]
     days_left   = (up_to - today).days if hasattr(up_to, '__sub__') else None
 
-    # Grace period nikalo: jaise '30 days' → 30
+    # parse grace period string e.g. '30 days' → 30
     grace_str   = str(row["grace_period"])
-    grace_days  = 30  # default fallback agar kuch na mile
+    grace_days  = 30  # default fallback
     try:
         grace_days = int(grace_str.split()[0])
     except (ValueError, IndexError):

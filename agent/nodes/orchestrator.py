@@ -5,7 +5,7 @@ from agent.prompts.orchestrator_prompt import orchestrator_prompt, general_promp
 
 
 def _as_text(content) -> str:
-    """Message content ko plain string banao — Gemini list-of-blocks deta hai, baaki string."""
+    """normalize to str — gemini returns list-of-blocks, others return str."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -18,11 +18,7 @@ def _as_text(content) -> str:
 
 
 def _clean_history(messages):
-    """
-    Sirf saaf conversational turns rakho — tool calls aur ToolMessages hata do.
-    Router aur general model ke paas koi tools bind nahi hain, isliye unhe
-    tool-laden history dena Gemini ko confuse kar sakta hai.
-    """
+    """strip tool calls and ToolMessages — router/general model has no tools bound, confuses gemini."""
     cleaned = []
     for m in messages:
         if isinstance(m, HumanMessage):
@@ -35,11 +31,7 @@ def _clean_history(messages):
 
 
 async def orchestrator(state: OrchestrationState):
-    """
-    Routing brain — har turn pe chalti hai. User ke latest message ko padh ke decide karti hai
-    ki kaunsi flow handle karegi (support / purchase / renewal / claim), ya general chat hai.
-    Yahi mechanism user ko ek flow se doosri flow mein 'jump' karne deta hai.
-    """
+    """runs every turn, picks which flow to route to (or handles general chat directly)."""
     from agent.graph import router_model, general_model
 
     history = _clean_history(state.text)
@@ -51,7 +43,7 @@ async def orchestrator(state: OrchestrationState):
 
     flow = decision.flow
 
-    # General chat — orchestrator khud reply karti hai, kisi flow mein nahi jaati
+    # general chat — reply directly, don't route to any flow
     if flow == "general":
         reply = await general_model.ainvoke([
             SystemMessage(content=general_prompt),
@@ -59,5 +51,5 @@ async def orchestrator(state: OrchestrationState):
         ])
         return {"text": [reply], "current_flow": None}
 
-    # Warna sirf current_flow set karo — conditional edge isi ke hisaab se flow bot pe bhej degi
+    # just set current_flow — the conditional edge handles the actual routing
     return {"current_flow": flow}

@@ -32,13 +32,16 @@
         <span class="text-xl">🛡️</span>
         <span class="font-semibold">Insurance AI</span>
       </div>
+      {% if not is_guest %}
       <button id="new-chat-btn"
               class="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-slate-700
                      hover:bg-slate-800 transition-colors text-sm font-medium">
         <span class="text-lg leading-none">+</span> New chat
       </button>
+      {% endif %}
     </div>
 
+    {% if not is_guest %}
     <div class="px-3 pb-2 text-xs uppercase tracking-wide text-slate-500">Recent</div>
     <nav id="sessions" class="flex-1 overflow-y-auto px-2 space-y-1"></nav>
 
@@ -52,6 +55,23 @@
         <span>↩</span> Sign out
       </a>
     </div>
+    {% else %}
+    <!-- Guest: chat history/sessions nahi — sirf sign in / register CTA -->
+    <div class="flex-1"></div>
+    <div class="border-t border-slate-800 p-3 space-y-2">
+      <p class="px-1 text-xs text-slate-400 leading-relaxed">
+        You're browsing as a guest. Sign in to purchase policies, file claims and save your chats.
+      </p>
+      <a href="{% url 'login' %}"
+         class="block text-center px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors text-sm font-semibold">
+        Sign in
+      </a>
+      <a href="{% url 'register' %}"
+         class="block text-center px-3 py-2 rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors text-sm font-medium">
+        Create free account
+      </a>
+    </div>
+    {% endif %}
   </aside>
 
   <!-- ── Main ────────────────────────────────────────────────────────────── -->
@@ -79,7 +99,34 @@
     </div>
   </main>
 
+  <!-- ── Login popup (guest ne saare details de diye → sign up prompt) ──────── -->
+  <div id="login-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+    <div class="w-full max-w-sm bg-white rounded-2xl shadow-xl p-7 text-center">
+      <div class="text-3xl mb-2">🔓</div>
+      <h2 class="text-xl font-bold text-slate-800">You're all set!</h2>
+      <p class="text-slate-500 text-sm mt-2 mb-5">
+        Thanks for sharing your details. Sign in or create a free account to get
+        personalised insurance recommendations, purchase policies and file claims.
+      </p>
+      <div class="space-y-2">
+        <a href="{% url 'register' %}"
+           class="block w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition-colors">
+          Create free account
+        </a>
+        <a href="{% url 'login' %}"
+           class="block w-full py-2.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg text-sm transition-colors">
+          Sign in
+        </a>
+        <button type="button" id="modal-dismiss"
+           class="block w-full py-2 text-slate-400 hover:text-slate-600 text-xs transition-colors">
+          Continue browsing as guest
+        </button>
+      </div>
+    </div>
+  </div>
+
 <script>
+const IS_GUEST     = {% if is_guest %}true{% else %}false{% endif %};
 const SEND_URL     = "{% url 'send' %}";
 const HISTORY_URL  = "{% url 'history' %}";
 const SESSIONS_URL = "{% url 'sessions' %}";
@@ -94,15 +141,30 @@ const $flow     = document.getElementById("flow-badge");
 const $sessions = document.getElementById("sessions");
 const $title    = document.getElementById("chat-title");
 
-const WELCOME =
-  "Hello! 👋 I'm your **Insurance AI assistant**.\n\n" +
-  "I can help you with:\n" +
-  "- 🔍 Exploring & comparing insurance policies\n" +
-  "- 🛒 Purchasing a new policy\n" +
-  "- 📋 Questions about your existing coverage\n" +
-  "- 🔄 Renewing or upgrading a policy\n" +
-  "- 🏥 Filing or checking a claim\n\n" +
-  "What can I help you with today?";
+const WELCOME = IS_GUEST
+  ? ("Hi there! 👋 I'm your **Insurance AI assistant**.\n\n" +
+     "I'd love to help you find the right cover. To get started, just say hello — " +
+     "I'll ask for a few quick details so I can assist you better.\n\n" +
+     "_Browsing as a guest. You can sign in anytime for full access._")
+  : ("Hello! 👋 I'm your **Insurance AI assistant**.\n\n" +
+     "I can help you with:\n" +
+     "- 🔍 Exploring & comparing insurance policies\n" +
+     "- 🛒 Purchasing a new policy\n" +
+     "- 📋 Questions about your existing coverage\n" +
+     "- 🔄 Renewing or upgrading a policy\n" +
+     "- 🏥 Filing or checking a claim\n\n" +
+     "What can I help you with today?");
+
+// ── Login popup (guest onboarding ke baad) ───────────────────────────────────
+const $loginModal = document.getElementById("login-modal");
+let   loginModalShown = false;
+function showLoginModal() {
+  if (loginModalShown || !$loginModal) return;   // ek hi baar dikhao
+  loginModalShown = true;
+  $loginModal.classList.remove("hidden");
+}
+const $modalDismiss = document.getElementById("modal-dismiss");
+if ($modalDismiss) $modalDismiss.addEventListener("click", () => $loginModal.classList.add("hidden"));
 
 // ── Rendering ──────────────────────────────────────────────────────────────
 function render(text) { return DOMPurify.sanitize(marked.parse(text || "")); }
@@ -227,7 +289,9 @@ async function sendMessage(text) {
     if (data.session_id) activeSession = data.session_id;
     if (data.error) addMessage("ai", "⚠️ " + data.error);
     else { addMessage("ai", data.response); updateFlow(data.current_flow); }
-    if (isFirst) loadSessions();   // pehla message bhejne pe title aa jaata hai
+    if (isFirst && !IS_GUEST) loadSessions();   // pehla message bhejne pe title aa jaata hai
+    // Guest ne saare details de diye → login popup dikhao
+    if (data.show_login) setTimeout(showLoginModal, 600);
   } catch (_) {
     hideTyping(); addMessage("ai", "⚠️ Something went wrong. Please try again.");
   } finally { $sendBtn.disabled = false; $input.focus(); }
@@ -238,11 +302,12 @@ $form.addEventListener("submit", e => {
   const t = $input.value.trim();
   if (t) sendMessage(t);
 });
-document.getElementById("new-chat-btn").addEventListener("click", newChat);
+const $newChatBtn = document.getElementById("new-chat-btn");
+if ($newChatBtn) $newChatBtn.addEventListener("click", newChat);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 (async function init() {
-  await loadSessions();
+  if (!IS_GUEST) await loadSessions();
   await loadHistory();
   $input.focus();
 })();

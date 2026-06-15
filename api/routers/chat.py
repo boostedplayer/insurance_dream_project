@@ -14,8 +14,8 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 def _touch_session(session_id: str, user_id: int, first_message: str) -> None:
     """
-    Session ko chat_sessions table mein upsert karo. Agar nayi hai toh title
-    pehle user message se banao (ChatGPT jaisa). updated_at hamesha refresh karo.
+    upsert session into chat_sessions. title comes from first message (ChatGPT-style).
+    always refreshes updated_at.
     """
     title = (first_message or "New chat").strip()
     if len(title) > 60:
@@ -34,10 +34,8 @@ def _touch_session(session_id: str, user_id: int, first_message: str) -> None:
 
 def _content_to_text(content) -> str:
     """
-    LLM message content ko plain string mein normalize karo.
-    Gemini 3.x content ko blocks ki list mein deta hai — jaise
-    [{'type': 'text', 'text': '...'}, {...thought signature...}] —
-    Groq/OpenAI seedha string dete hain. Dono handle karo.
+    normalize LLM message content to plain string.
+    Gemini 3.x returns a list of blocks; Groq/OpenAI return a string directly.
     """
     if isinstance(content, str):
         return content
@@ -53,8 +51,7 @@ def _content_to_text(content) -> str:
 
 
 def _get_last_ai_text(result: dict) -> str:
-    # Reverse se chalo aur pehla AIMessage dhoondo jiska text content actually ho —
-    # tool-call-only messages (khaali text) ko skip kar do.
+    # walk backwards, skip tool-call-only messages (empty text)
     for msg in reversed(result.get("text", [])):
         if isinstance(msg, AIMessage):
             text = _content_to_text(msg.content)
@@ -66,8 +63,7 @@ def _get_last_ai_text(result: dict) -> str:
 @router.post("", response_model=ChatResponse)
 async def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
     """
-    Main chat endpoint hai yeh. Message bhejo, agent ka jawab lo.
-    Session history har session_id ke liye LangGraph ke async checkpointer se preserve hoti hai.
+    main chat endpoint. session history preserved per session_id via LangGraph async checkpointer.
     """
     session_id = body.session_id or str(uuid.uuid4())
     user_id    = user["user_id"]
@@ -96,11 +92,62 @@ async def chat(body: ChatRequest, user: dict = Depends(get_current_user)):
     )
 
 
+# guest mode — no auth
+# auth_user_id is None and user_valid is False, so check_user routes to guest_flow
+# which collects name/email/number/pincode then shows login popup
+
+@router.post("/guest", response_model=ChatResponse)
+async def chat_guest(body: ChatRequest):
+    """unauthenticated guest chat — collects lead info then prompts login."""
+    session_id = body.session_id or str(uuid.uuid4())
+
+    config = {
+        "configurable": {
+            "thread_id":    session_id,
+            "auth_user_id": None,
+        }
+    }
+    state_input = {
+        "text":         [HumanMessage(content=body.message)],
+        "auth_user_id": None,
+        "user_valid":   False,
+    }
+
+    result = await _graph.app.ainvoke(state_input, config=config)
+
+    return ChatResponse(
+        response=_get_last_ai_text(result),
+        session_id=session_id,
+        current_flow=result.get("current_flow"),
+        show_login=(result.get("guest_stage") == "done"),
+    )
+
+
+@router.get("/guest/history/{session_id}")
+async def chat_guest_history(session_id: str):
+    """conversation history for a guest session (no auth)."""
+    config = {"configurable": {"thread_id": session_id, "auth_user_id": None}}
+    state  = await _graph.app.aget_state(config)
+
+    if not state or not state.values:
+        return {"session_id": session_id, "messages": []}
+
+    messages = []
+    for msg in state.values.get("text", []):
+        if isinstance(msg, HumanMessage):
+            messages.append({"role": "user", "content": _content_to_text(msg.content)})
+        elif isinstance(msg, AIMessage):
+            txt = _content_to_text(msg.content)
+            if txt.strip():
+                messages.append({"role": "assistant", "content": txt})
+
+    return {"session_id": session_id, "messages": messages}
+
+
 @router.post("/stream")
 async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user)):
     """
-    Server-Sent Events ke zariye streaming chat hoti hai yahan.
-    Django ya frontend EventSource ya fetch + ReadableStream se consume kar sakta hai.
+    SSE streaming chat. consume with EventSource or fetch + ReadableStream.
     """
     session_id = body.session_id or str(uuid.uuid4())
     user_id    = user["user_id"]
@@ -136,9 +183,7 @@ async def chat_stream(body: ChatRequest, user: dict = Depends(get_current_user))
 
 @router.get("/history/{session_id}")
 async def chat_history(session_id: str, user: dict = Depends(get_current_user)):
-    """
-    Diye gaye session ki poori conversation history wapas laao.
-    """
+    """full conversation history for a session."""
     config = {"configurable": {"thread_id": session_id, "auth_user_id": user["user_id"]}}
     state  = await _graph.app.aget_state(config)
 
@@ -151,17 +196,17 @@ async def chat_history(session_id: str, user: dict = Depends(get_current_user)):
             messages.append({"role": "user",      "content": _content_to_text(msg.content)})
         elif isinstance(msg, AIMessage):
             txt = _content_to_text(msg.content)
-            if txt.strip():  # tool-call-only messages history mein mat dikhao
+            if txt.strip():  # skip tool-call-only messages
                 messages.append({"role": "assistant", "content": txt})
 
     return {"session_id": session_id, "messages": messages}
 
 
-# ── Chat sessions (sidebar) ─────────────────────────────────────────────────────
+# chat sessions (sidebar)
 
 @router.get("/sessions")
 async def list_sessions(user: dict = Depends(get_current_user)):
-    """Current user ke saare chat sessions — newest first (sidebar ke liye)."""
+    """all sessions for current user, newest first."""
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
@@ -187,7 +232,7 @@ async def list_sessions(user: dict = Depends(get_current_user)):
 
 @router.post("/sessions")
 async def create_session(user: dict = Depends(get_current_user)):
-    """Naya khaali chat session banao aur uska id wapas do."""
+    """create a new empty chat session and return its id."""
     session_id = str(uuid.uuid4())
     with engine.begin() as conn:
         conn.execute(
@@ -202,7 +247,7 @@ async def create_session(user: dict = Depends(get_current_user)):
 
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: str, user: dict = Depends(get_current_user)):
-    """Ek chat session delete karo (sirf apna)."""
+    """delete a session — only owner can do this."""
     with engine.begin() as conn:
         res = conn.execute(
             text("DELETE FROM chat_sessions WHERE session_id = :sid AND user_id = :uid"),

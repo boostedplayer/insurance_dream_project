@@ -12,13 +12,11 @@ load_dotenv()
 @tool
 def create_upgrade_payment(holder_id: int, target_policy_id: int, config: RunnableConfig) -> dict:
     """
-    Tabhi use karo jab user ne upgrade ke liye haan bol diya ho
-    (yaani initiate_upgrade dikhane ke baad user ne yes/confirm/proceed keh diya).
-    Naye policy ke poore premium ke liye Razorpay Payment Link banata hai.
-
-    holder_id        — abhi wale policyholder ka ID.
-    target_policy_id — jis policy mein upgrade karna hai uska ID (initiate_upgrade se milega).
-    Returns: Razorpay payment link URL.
+    use only after user confirms the upgrade (after initiate_upgrade and user said yes).
+    creates a razorpay payment link for the full premium of the new policy.
+    holder_id: current policyholder id.
+    target_policy_id: the policy to upgrade to (from initiate_upgrade).
+    returns a razorpay payment url.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

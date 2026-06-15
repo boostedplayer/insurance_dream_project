@@ -9,9 +9,9 @@ from api.routers import auth, chat, webhook, admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await startup()   # async pool khol do + checkpoint tables bana do
+    await startup()   # open pool + setup checkpoint tables
     yield
-    await shutdown()  # exit pe pool band karo
+    await shutdown()  # close pool on shutdown
 
 
 app = FastAPI(

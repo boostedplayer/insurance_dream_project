@@ -7,11 +7,8 @@ from sqlalchemy import text
 @tool
 def get_claim_history(config: RunnableConfig) -> dict:
     """
-    Jab user apne purane ya existing claims ke baare mein pooche tab use karo.
-    Examples: 'what claims have I made?', 'show me my claim history',
-              'what is the status of my claim?', 'was my previous claim approved?'
-
-    User ke saare filed claims return karta hai — type, amount, status, aur verdict ke saath.
+    use when user asks about their past or current claims.
+    returns all filed claims with type, amount, status, and verdict.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

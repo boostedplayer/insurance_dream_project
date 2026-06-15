@@ -10,18 +10,16 @@ from agent.nodes.utils import get_risk_category, RISK_LOADING
 @tool
 def new_policy_inquiry(policy_type: str, config: RunnableConfig) -> dict[str, Any]:
     """
-    Jab user naya insurance policy explore ya kharidna chahta ho tab use karo.
-    User ke profile pe ML-based risk scoring chalata hai aur top 3
-    recommended policies return karta hai — risk loading ke baad personalized premiums ke saath.
-
-    policy_type yeh teen mein se ek hona chahiye: health, motor, life
+    use when user wants to explore or buy a new policy.
+    runs ML-based risk scoring on their profile and returns top 3 recommended policies with personalized premiums.
+    policy_type must be one of: health, motor, life.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
     if policy_type not in {"health", "motor", "life"}:
         return {"error": "Invalid policy_type. Must be one of: health, motor, life."}
 
-    # ML model ke liye user ka demographics fetch karo
+    # fetch user demographics for ML model
     with engine.connect() as conn:
         row = conn.execute(
             text("""
@@ -41,8 +39,7 @@ def new_policy_inquiry(policy_type: str, config: RunnableConfig) -> dict[str, An
 
     user_dict = dict(row._mapping)
 
-    # Profile complete hai? Risk scoring ke liye demographics zaroori hain.
-    # Motor-specific fields (vehicle_*, mileage) ko health/life ke liye optional rakho.
+    # motor-specific fields (vehicle_*, mileage) are optional for health/life
     required = ["age", "gender", "income_category", "occupation", "bmi",
                 "exercise_frequency", "alcohol_consumption", "marital_status", "city"]
     missing = [f for f in required if user_dict.get(f) in (None, "")]
@@ -57,11 +54,11 @@ def new_policy_inquiry(policy_type: str, config: RunnableConfig) -> dict[str, An
             ),
         }
 
-    from agent.graph import ml_model  # circular import se bachne ke liye yahan import karo, module load ke time nahi
-    # Model "Yes"/"No" strings pe trained hai, lekin DB inhe BOOLEAN store karta hai — convert karo
+    from agent.graph import ml_model  # late import to avoid circular dep
+    # model trained on "Yes"/"No" strings but DB stores booleans — convert
     for _col in ("smoker", "chronic_disease"):
         user_dict[_col] = "Yes" if user_dict.get(_col) else "No"
-    # Motor fields agar NULL hain toh safe defaults (health/life inquiry mein matter nahi karte)
+    # motor fields default to 0 if null (don't matter for health/life)
     for _col in ("vehicle_age", "driving_violations", "annual_mileage", "claims_history", "dependents"):
         if user_dict.get(_col) is None:
             user_dict[_col] = 0
@@ -70,7 +67,7 @@ def new_policy_inquiry(policy_type: str, config: RunnableConfig) -> dict[str, An
     risk_category = get_risk_category(risk_score)
     loading_percent = RISK_LOADING[risk_category]
 
-    # matching policies fetch karo
+    # fetch matching policies
     with engine.connect() as conn:
         policies = conn.execute(
             text("""
@@ -109,7 +106,7 @@ def new_policy_inquiry(policy_type: str, config: RunnableConfig) -> dict[str, An
             "what_covers":         p["what_covers"],
         })
 
-    # underwriting result save karo (inquiry level — abhi koi specific policy select nahi hui)
+    # save underwriting result at inquiry level — no specific policy chosen yet
     with engine.begin() as conn:
         conn.execute(
             text("""

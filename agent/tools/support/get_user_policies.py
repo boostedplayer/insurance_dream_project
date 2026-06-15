@@ -7,12 +7,8 @@ from sqlalchemy import text
 @tool
 def get_user_policies(config: RunnableConfig) -> dict:
     """
-    Jab user apni existing/current insurance policies ke baare mein pooche tab use karo.
-    Examples: 'what policies do I have?', 'show me my insurance', 'what am I covered for?',
-              'list my active policies', 'what type of insurance do I hold?'
-
-    User ke paas jo bhi policies hain unka poora detail return karta hai —
-    type, description, coverage, premiums, aur validity dates sab kuch.
+    use when user asks about their existing policies.
+    returns full details — type, description, coverage, premiums, validity dates.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

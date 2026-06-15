@@ -9,7 +9,7 @@ def _compute_fraud_score(claimed_amount: float, coverage_amount: float,
                          claims_history: int, days_since_start: int) -> float:
     score = 0.0
 
-    # Claim aur coverage ka ratio dekho — kitna risk hai
+    # claim-to-coverage ratio
     ratio = claimed_amount / coverage_amount if coverage_amount else 1.0
     if ratio > 0.90:
         score += 0.35
@@ -18,7 +18,7 @@ def _compute_fraud_score(claimed_amount: float, coverage_amount: float,
     elif ratio > 0.30:
         score += 0.10
 
-    # Baar baar claim karne wale ka risk check karo
+    # serial claimers are higher risk
     if claims_history >= 5:
         score += 0.35
     elif claims_history >= 3:
@@ -26,7 +26,7 @@ def _compute_fraud_score(claimed_amount: float, coverage_amount: float,
     elif claims_history >= 1:
         score += 0.10
 
-    # Naya policy leke turant claim karna — yeh suspicious lagta hai
+    # claiming too soon after policy start is suspicious
     if days_since_start < 30:
         score += 0.30
     elif days_since_start < 90:
@@ -38,18 +38,13 @@ def _compute_fraud_score(claimed_amount: float, coverage_amount: float,
 @tool
 def assess_claim(claim_id: int, config: RunnableConfig) -> dict:
     """
-    initiate_claim ke turant baad use karo. Claim ki eligibility check aur fraud/risk assessment karta hai,
-    phir ek routing decision return karta hai jis par bot ko act karna chahiye.
+    call right after initiate_claim. runs eligibility + fraud scoring and returns a routing decision.
 
-    claim_id — woh ID jo initiate_claim ne return ki thi.
-
-    Routing decisions:
-      'auto_approve'  → aage approve_claim call karo
-      'human_review'  → aage flag_for_human_review call karo
-      'escalate_crm'  → aage escalate_claim_to_crm call karo
-      'rejected'      → claim eligible nahi hai, user ko batao
-
-    Returns: fraud_score, assessed_amount, routing, aur next step ke liye agent_guidance.
+    routing → next tool:
+      'auto_approve'  → approve_claim
+      'human_review'  → flag_for_human_review
+      'escalate_crm'  → escalate_claim_to_crm
+      'rejected'      → claim not eligible, inform user
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -78,11 +73,11 @@ def assess_claim(claim_id: int, config: RunnableConfig) -> dict:
 
     row = dict(row._mapping)
 
-    # ── Eligibility check — dekho claim cover hota hai ya nahi ───────────────
+    # eligibility check
     claim_type_lower    = row["claim_type"].lower()
     what_doesnt_cover   = (row["what_doesnt_cover"] or "").lower()
 
-    # Simple keyword match — agar claim type exclusion mein hai toh reject karo
+    # simple keyword match against exclusions
     is_ineligible = any(
         keyword in what_doesnt_cover
         for keyword in [claim_type_lower, claim_type_lower.replace("_", " ")]
@@ -110,7 +105,7 @@ def assess_claim(claim_id: int, config: RunnableConfig) -> dict:
             )
         }
 
-    # ── Fraud / risk scoring — kitna risky hai yeh claim ─────────────────────
+    # fraud / risk scoring
     today            = date.today()
     valid_from       = row["valid_from"]
     days_since_start = (today - valid_from).days if hasattr(valid_from, '__rsub__') else 180
@@ -120,12 +115,12 @@ def assess_claim(claim_id: int, config: RunnableConfig) -> dict:
     claims_history   = int(row["claims_history"] or 0)
 
     fraud_score      = _compute_fraud_score(claimed_amount, coverage_amount, claims_history, days_since_start)
-    fraud_score_int  = int(fraud_score * 100)   # 0-100 integer mein store karo
+    fraud_score_int  = int(fraud_score * 100)   # store as 0-100 int
 
-    # Assessed payout — 10% deductible kaato, aur coverage se zyada nahi
+    # 10% deductible, capped at coverage
     assessed_amount  = round(min(claimed_amount, coverage_amount) * 0.90, 2)
 
-    # ── Routing decision — claim kahan bhejein ────────────────────────────────
+    # routing decision
     if fraud_score < 0.35:
         routing = "auto_approve"
     elif fraud_score < 0.65:

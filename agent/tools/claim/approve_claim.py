@@ -7,12 +7,8 @@ from sqlalchemy import text
 @tool
 def approve_claim(claim_id: int, config: RunnableConfig) -> dict:
     """
-    Tab use karo jab assess_claim ne routing='auto_approve' return kiya ho.
-    Claim approval finalize karta hai aur payout amount set karta hai.
-    Human_review ya escalate_crm routing ke liye yeh tool mat bulao.
-
-    claim_id — woh claim ID jo initiate_claim / assess_claim se mili hai.
-    Returns: approval confirmation with payout amount.
+    only call this when assess_claim returned routing='auto_approve'.
+    don't call for human_review or escalate_crm routings.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -64,7 +60,7 @@ def approve_claim(claim_id: int, config: RunnableConfig) -> dict:
             """),
             {"amt": approved_amount, "cid": claim_id}
         )
-        # User ka claims_history counter ek baar badhao
+        # bump claims_history counter
         conn.execute(
             text("""
                 UPDATE users u

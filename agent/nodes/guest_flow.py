@@ -1,5 +1,6 @@
 from sqlalchemy import text
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
+from langgraph.graph import END
 from langgraph.types import Command
 
 from agent.prompts.validation_prompt import validation_prompt
@@ -10,7 +11,7 @@ from agent.db.db import engine
 
 
 def _as_text(content) -> str:
-    """Message content ko string banao — Gemini list-of-blocks deta hai, baaki string."""
+    """normalize to str — gemini returns list-of-blocks, others return str."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):
@@ -37,180 +38,113 @@ def check_user(state:OrchestrationState):
 
     if data:
         user_dict =dict(data._mapping)
-        return {'user_valid':True, 'user_info':User(**user_dict)} #directly mutate mat karo, isliye alag se return kar rahe hain
+        return {'user_valid':True, 'user_info':User(**user_dict)}
     else:
         return {"user_valid":False}
 
 
-def guest_flow(state:OrchestrationState):
-    msg = AIMessage(content="Hi, welcome to our insurance assistant. can i get your name please?")
-    return {'text':[msg]}
-
-
-
-def ask_name(state:OrchestrationState):
-
+def _latest_messages(state: OrchestrationState):
+    """walk back through history to find the latest human and ai messages."""
     latest_human_message = ""
     latest_model_message = ""
-
     for msg in reversed(state.text):
-
         if not latest_human_message and isinstance(msg, HumanMessage):
             latest_human_message = _as_text(msg.content)
-
         if not latest_model_message and isinstance(msg, AIMessage):
             latest_model_message = _as_text(msg.content)
-
         if latest_human_message and latest_model_message:
             break
+    return latest_human_message, latest_model_message
+
+
+# collection order and what to ask next
+_NEXT_STAGE = {
+    "greet":   "name",
+    "name":    "email",
+    "email":   "number",
+    "number":  "pincode",
+    "pincode": "done",
+}
+
+_ASK_INSTRUCTION = {
+    "name":    "Politely ask the user for their full name so you can personalise the conversation.",
+    "email":   "Thank the user for the detail they just gave, then politely ask for their email address.",
+    "number":  "Thank the user for their email, then politely ask for their phone number.",
+    "pincode": "Thank the user for their phone number, then politely ask for their area pincode.",
+}
+
+
+def guest_flow(state: OrchestrationState):
+    """
+    one step per user message: greet → name → email → number → pincode → login_popup.
+    single state-machine node because separate nodes would loop without waiting for user input.
+    """
+    stage = state.guest_stage or "greet"
+
+    # already done — don't save again, just nudge them to sign in
+    if stage == "done":
+        res = gc_model.invoke([
+            SystemMessage(content=(
+                "The user has already shared all their details. Warmly let them know that to "
+                "continue — purchase a policy, file a claim or get personalised recommendations — "
+                "they just need to sign in or create a free account using the buttons on the page."
+            )),
+            *state.text,
+        ])
+        return Command(update={"text": [res]}, goto=END)
+
+    # first contact — greet and ask for name; don't consume the user's message (might be "hi" or a question)
+    if stage == "greet":
+        res = gc_model.invoke([
+            SystemMessage(content=(
+                "You are a friendly insurance assistant. Warmly welcome the user, briefly mention "
+                "you'll need a few quick details to assist them, then ask for their full name. "
+                "Keep it to 2 short sentences."
+            )),
+            *state.text,
+        ])
+        return Command(update={"text": [res], "guest_stage": "name"}, goto=END)
+
+    # expecting an answer for the current stage field
+    latest_human_message, latest_model_message = _latest_messages(state)
 
     output = info_extractor.invoke(latest_human_message)
-    text = validation_prompt.format(
-        model_ques = latest_model_message,
-        user_ans = latest_human_message
-    )
-    valid = info_validator.invoke(text)
-    if valid.is_valid:
-        update = state.guest_info.model_copy(
-            update = {
-                "name":output.name
-        })
-        res = gc_model.invoke([SystemMessage(content=f"appreciate user for telling the name, use the provided name to personalize the chats and ask the user politely to provide the email. "),*state.text])
+    valid = info_validator.invoke(validation_prompt.format(
+        model_ques=latest_model_message,
+        user_ans=latest_human_message,
+    ))
+
+    if not valid.is_valid:
+        # re-ask the same field
+        res = gc_model.invoke([
+            SystemMessage(content=(
+                f"The user did not clearly provide their {stage}. Briefly acknowledge any concern "
+                f"they raised and assure them you'll help right after a couple of details, then "
+                f"politely ask again for their {stage}."
+            )),
+            *state.text,
+        ])
+        return Command(update={"text": [res]}, goto=END)
+
+    # valid answer — store field and advance
+    guest_info = state.guest_info.model_copy(update={stage: getattr(output, stage)})
+    next_stage = _NEXT_STAGE.get(stage, "done")
+
+    if next_stage == "done":
+        # all details collected → save lead and show login popup
         return Command(
-            update = {"text":[res],"guest_info":update},
-            goto = "ask_email"
+            update={"guest_info": guest_info, "guest_stage": "done"},
+            goto="login_popup",
         )
 
-    res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her name, appreciate his last concern, tell him politely that you will get back to that concern after getting details, again ask user politey for his name"),*state.text])
+    res = gc_model.invoke([
+        SystemMessage(content=_ASK_INSTRUCTION[next_stage]),
+        *state.text,
+    ])
     return Command(
-        update = {'text':[res]},
-        goto = "ask_name"
+        update={"text": [res], "guest_info": guest_info, "guest_stage": next_stage},
+        goto=END,
     )
-
-
-
-def ask_email(state:OrchestrationState):
-
-    latest_human_message = ""
-    latest_model_message = ""
-
-    for msg in reversed(state.text):
-
-        if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = _as_text(msg.content)
-
-        if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = _as_text(msg.content)
-
-        if latest_human_message and latest_model_message:
-            break
-
-    output = info_extractor.invoke(latest_human_message)
-    text = validation_prompt.format(
-        model_ques = latest_model_message,
-        user_ans = latest_human_message
-    )
-    valid = info_validator.invoke(text)
-    if valid.is_valid:
-        update = state.guest_info.model_copy(
-            update = {
-                "email":output.email
-            }
-        )
-        res = gc_model.invoke([SystemMessage(content="appreciate user for telling the email, ask the user politely to provide the number. "),*state.text])
-        return Command(
-            update = {'text':[res],'guest_info':update},
-            goto = "ask_number"
-        )
-    res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her email, appreciate his last concern if he had any, tell him politely that you will get back to that concern after getting details, again ask user politey for his email"),*state.text])
-    return Command(
-        update={'text':[res]},
-        goto = "ask_email"
-    )
-
-
-
-def ask_number(state:OrchestrationState):
-
-    latest_human_message = ""
-    latest_model_message = ""
-
-    for msg in reversed(state.text):
-
-        if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = _as_text(msg.content)
-
-        if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = _as_text(msg.content)
-
-        if latest_human_message and latest_model_message:
-            break
-
-    output = info_extractor.invoke(latest_human_message)
-    text = validation_prompt.format(
-        model_ques = latest_model_message,
-        user_ans = latest_human_message
-    )
-    valid = info_validator.invoke(text)
-    if valid.is_valid:
-        update = state.guest_info.model_copy(
-            update = {
-                "number":output.number
-        })
-        res = gc_model.invoke([SystemMessage(content="appreciate user for telling the number, ask the user politely to provide the pincode."),*state.text])
-        return Command(
-            update = {'text':[res],'guest_info':update},
-            goto = 'ask_pincode'
-        )
-
-    res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her number, appreciate his last concern if he had any, tell him politely that you will get back to that concern after getting details, again ask user politey for his number"),*state.text])
-    return Command(
-        update = {'text':[res]},
-        goto = 'ask_number'
-    )
-
-
-
-
-def ask_pincode(state:OrchestrationState):
-
-    latest_human_message = ""
-    latest_model_message = ""
-
-    for msg in reversed(state.text):
-
-        if not latest_human_message and isinstance(msg, HumanMessage):
-            latest_human_message = _as_text(msg.content)
-
-        if not latest_model_message and isinstance(msg, AIMessage):
-            latest_model_message = _as_text(msg.content)
-
-        if latest_human_message and latest_model_message:
-            break
-
-    output = info_extractor.invoke(latest_human_message)
-    text = validation_prompt.format(
-        model_ques = latest_model_message,
-        user_ans = latest_human_message
-    )
-    valid = info_validator.invoke(text)
-    if valid.is_valid:
-        updated = state.guest_info.model_copy(
-            update = {
-                "pincode":output.pincode
-            }
-        )
-        res = gc_model.invoke([SystemMessage(content="appreciate user for telling the pincode, ask the user politely to login to further proceed or wait for agent to contact you through the given details."),*state.text])
-        return Command(
-            update ={"text":[res],"guest_info": updated},
-            goto = 'login_popup'
-        )
-
-    res = gc_model.invoke([SystemMessage(content="user didnt gave u his/her pincode, appreciate his last concern if he had any, tell him politely that you will get back to that concern after getting details, again ask user politey for his pincode"),*state.text])
-    return Command(
-            update ={"text":[res]},
-            goto = 'ask_pincode'
-        )
 
 def login_popup(state: OrchestrationState):
     info = state.guest_info
@@ -229,7 +163,7 @@ def login_popup(state: OrchestrationState):
                 }
             )
     except Exception:
-        pass  # DB error aaye toh bhi chat band mat karo
+        pass  # don't let a db error kill the chat
 
     msg = AIMessage(content=(
         f"Thank you, {info.name or 'there'}! Your details have been saved. 🎉\n\n"

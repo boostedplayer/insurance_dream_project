@@ -13,15 +13,11 @@ CONFIDENCE_THRESHOLD = 0.60
 @tool
 def get_specific_policy_details(query: str) -> dict:
     """
-    Jab user kisi specific policy ka naam le, ya coverage/exclusion ke baare mein detail se pooche tab use karo.
-    Typos, partial names, aur natural language queries ko semantic search se handle karta hai.
-
-    Examples: 'what does SecureHealth Plus cover?', 'tell me about the motor policy for low risk',
-              'what are the exclusions in the life plan?'
-
-    Policy ka description, coverage, exclusions, benefits, aur agent guidance return karta hai.
+    use when user asks about a specific policy by name or wants coverage/exclusion details.
+    handles typos and partial names via semantic search.
+    returns description, coverage, exclusions, and agent guidance.
     """
-    from agent.graph import embedding_model  # circular import se bachne ke liye module load pe nahi, yahaan import karo
+    from agent.graph import embedding_model  # late import to avoid circular dep
 
     query_embedding = embedding_model.embed_query(query)
 

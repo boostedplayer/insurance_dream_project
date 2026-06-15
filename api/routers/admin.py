@@ -10,10 +10,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/claims/pending", response_model=List[ClaimSummary])
 def list_pending_claims(user: dict = Depends(get_current_user)):
-    """
-    Jo claims human review ka intezaar kar rahe hain, unhe saare laao.
-    Django admin panel mein human agent queue dikhane ke liye use hota hai.
-    """
+    """claims waiting for human review — feeds the admin panel queue."""
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
@@ -51,10 +48,7 @@ def submit_claim_decision(
     body: ClaimDecisionRequest,
     user: dict = Depends(get_current_user),
 ):
-    """
-    Human agent apna decision claim pe submit karta hai jo human review mein pada hai.
-    Django admin panel se call hota hai jab agent claim ki details review kar leta hai.
-    """
+    """human agent submits approve/reject decision on a claim in human_review."""
     with engine.connect() as conn:
         claim = conn.execute(
             text("SELECT claim_id, status FROM claim WHERE claim_id = :cid"),
@@ -117,10 +111,7 @@ def submit_claim_decision(
 
 @router.get("/tickets", response_model=List[TicketSummary])
 def list_open_tickets(user: dict = Depends(get_current_user)):
-    """
-    Saare open support tickets aur CRM escalations laao.
-    Django admin aur CRM panel ke liye use hota hai.
-    """
+    """all open support tickets / CRM escalations."""
     with engine.connect() as conn:
         rows = conn.execute(
             text("""
@@ -146,7 +137,7 @@ def list_open_tickets(user: dict = Depends(get_current_user)):
 
 @router.patch("/tickets/{ticket_id}/close")
 def close_ticket(ticket_id: int, user: dict = Depends(get_current_user)):
-    """Support ticket ko resolved mark kar do."""
+    """mark a support ticket as resolved."""
     with engine.begin() as conn:
         conn.execute(
             text("UPDATE support_tickets SET status = 'closed' WHERE ticket_id = :tid"),

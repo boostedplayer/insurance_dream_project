@@ -13,13 +13,12 @@ load_dotenv()
 @tool
 def confirm_upgrade(payment_link_id: str, holder_id: int, target_policy_id: int, config: RunnableConfig) -> dict:
     """
-    Jab user confirm kare ki unhone upgrade payment kar di hai tab is tool ko use karo.
-    Payment verify karo, purani policy cancel karo, aur nayi upgraded policy activate karo.
-
-    payment_link_id  — create_upgrade_payment se mila Razorpay link ID.
-    holder_id        — jo purana policyholder ID replace ho raha hai.
-    target_policy_id — nayi policy ID jisme user upgrade hua hai.
-    Returns: nayi policy activation ki details.
+    use when user confirms they've paid for the upgrade.
+    verifies payment, cancels old policy, and activates the new upgraded policy.
+    payment_link_id: razorpay link id from create_upgrade_payment.
+    holder_id: the old policyholder id being replaced.
+    target_policy_id: the new policy id to activate.
+    returns new policy activation details.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -92,7 +91,7 @@ def confirm_upgrade(payment_link_id: str, holder_id: int, target_policy_id: int,
     next_bill   = today + timedelta(days=min(30, tenure_days))
 
     with engine.begin() as conn:
-        # Purani policy cancel kar do
+        # cancel old policy
         conn.execute(
             text("""
                 UPDATE policyholder
@@ -102,7 +101,7 @@ def confirm_upgrade(payment_link_id: str, holder_id: int, target_policy_id: int,
             {"hid": holder_id, "uid": auth_user_id}
         )
 
-        # Upgraded policy ke liye nayi policyholder record bana do
+        # create new policyholder record for the upgraded policy
         new_holder = conn.execute(
             text("""
                 INSERT INTO policyholder (user_id, policy_id, valid_from, next_bill, up_to, grace_period, status)

@@ -55,3 +55,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # FastAPI backend ka URL — Django yahan se chat requests proxy karta hai
 FASTAPI_BASE_URL = os.getenv("FASTAPI_BASE_URL", "http://localhost:8002")
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")

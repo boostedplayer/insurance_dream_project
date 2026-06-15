@@ -7,6 +7,7 @@ urlpatterns = [
     path("login/",     views.login_view,          name="login"),
     path("logout/",    views.logout_view,         name="logout"),
     path("register/",  views.register_view,       name="register"),
+    path("questionnaire/", views.questionnaire_view, name="questionnaire"),
 
     # Chat API proxies
     path("send/",      views.send_message,        name="send"),

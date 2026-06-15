@@ -9,13 +9,11 @@ load_dotenv()
 api_key   = os.getenv("PINECONE_API_KEY")
 _hf_token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN")
 
-# Seedha embedding model bana lo — agent.graph import mat karo (woh ML model bhi load karta hai)
+# don't import agent.graph here, it loads the ML model too
 embedding_model = HuggingFaceEndpointEmbeddings(
     model="sentence-transformers/all-MiniLM-L6-v2",
     huggingfacehub_api_token=_hf_token,
 )
-
-# Index aur uski dimensions banao
 
 index_name = "faq-rag"
 vector_dimension = 384
@@ -44,7 +42,7 @@ else:
     print(f"index already exists : {index_name}")
 
 
-index = pc.Index(index_name) # Index se connection jod do.
+index = pc.Index(index_name)
 
 
 df = pd.read_csv("insurance_faq_dataset.csv")

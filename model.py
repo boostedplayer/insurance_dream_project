@@ -1,5 +1,5 @@
 from sklearn.ensemble import RandomForestRegressor
-#scale invariant hota h
+# scale invariant
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder,OrdinalEncoder

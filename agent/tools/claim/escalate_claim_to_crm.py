@@ -7,12 +7,8 @@ from sqlalchemy import text
 @tool
 def escalate_claim_to_crm(claim_id: int, config: RunnableConfig) -> dict:
     """
-    Tab use karo jab assess_claim ne routing='escalate_crm' return kiya ho.
-    Claim ko CRM team ke paas full investigation ke liye escalate karta hai.
-    High-risk ya suspicious claims ke liye use hota hai jinhein gehri jaanch chahiye.
-
-    claim_id — initiate_claim / assess_claim se mila hua claim ID.
-    Returns: CRM ticket ID aur escalation ka confirmation.
+    only call when assess_claim returned routing='escalate_crm'.
+    sends high-risk claims to CRM for full investigation.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -76,7 +72,8 @@ def escalate_claim_to_crm(claim_id: int, config: RunnableConfig) -> dict:
             {"cid": claim_id, "ctx": context}
         ).fetchone()
 
-        ticket_id = ticket["ticket_id"]
+        # SQLAlchemy 2.0 breaks string-key indexing on Row — use ._mapping
+        ticket_id = dict(ticket._mapping)["ticket_id"]
 
         conn.execute(
             text("""

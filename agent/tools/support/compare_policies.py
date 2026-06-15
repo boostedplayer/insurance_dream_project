@@ -11,7 +11,7 @@ COMPARE_THRESHOLD = 0.50
 
 
 def _fetch_policy(query: str, embedding_model) -> dict | None:
-    """Diye gaye query ke liye Pinecone se best-matching policy dhundh ke laao."""
+    """fetch best-matching policy from pinecone for the given query."""
     vec = embedding_model.embed_query(query)
     result = _policy_index.query(
         vector=vec,
@@ -39,13 +39,9 @@ def _fetch_policy(query: str, embedding_model) -> dict | None:
 @tool
 def compare_policies(policy_a: str, policy_b: str) -> dict:
     """
-    Jab user do insurance policies ko side by side compare karna chahta ho tab use karo.
-    Examples: 'compare SecureHealth Plus vs BasicHealth Cover',
-              'what is the difference between the two health plans?',
-              'which motor policy is better for me?'
-
-    policy_a aur policy_b mein woh policy names ya descriptions daalo jo user ne mention kiye hain.
-    Dono policies ka structured side-by-side comparison return karta hai.
+    use when user wants to compare two policies side by side.
+    policy_a and policy_b are the policy names/descriptions the user mentioned.
+    returns a structured comparison of both.
     """
     from agent.graph import embedding_model
 

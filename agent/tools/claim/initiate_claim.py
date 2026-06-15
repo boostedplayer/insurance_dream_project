@@ -14,19 +14,12 @@ def initiate_claim(
     config: RunnableConfig,
 ) -> dict:
     """
-    Jab user insurance claim file karna chahta ho tab use karo.
-    Yeh claims flow mein hamesha PEHLA step hai — assess_claim se pehle ise call karo.
+    always the first step in the claims flow — call before assess_claim.
+    use when user wants to file a claim ('I had an accident', 'I was hospitalised', etc.).
 
-    Examples: 'I want to file a claim', 'I had an accident', 'I was hospitalised',
-              'my vehicle was damaged', 'I need to claim for my medical expenses'.
-
-    holder_id            — jis policyholder ID ke under claim file karna hai.
-                           Agar user ne nahi bataya toh get_user_policies use karo.
-    claim_type           — claim ka type (e.g. 'medical_expense', 'hospitalisation',
-                           'accident', 'theft', 'third_party_damage', 'critical_illness').
-    incident_description — user ke apne shabdon mein kya hua tha.
-    claimed_amount       — user kitna claim kar raha hai INR mein.
-    Returns: claim_id jo agli step (assess_claim) mein kaam aayega.
+    holder_id — if unknown, call get_user_policies first.
+    claim_type — e.g. 'medical_expense', 'hospitalisation', 'accident', 'theft'.
+    returns a claim_id needed for the next step (assess_claim).
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -60,7 +53,7 @@ def initiate_claim(
 
     today  = date.today()
     up_to  = holder["up_to"]
-    # Expiry ke baad bhi 30 din ka grace period milta hai
+    # 30-day grace period after expiry
     if hasattr(up_to, '__sub__') and (today - up_to).days > 30:
         return {
             "status": "policy_expired",
@@ -89,7 +82,8 @@ def initiate_claim(
             }
         ).fetchone()
 
-    claim_id = claim["claim_id"]
+    # SQLAlchemy 2.0 breaks string-key indexing on Row — use ._mapping
+    claim_id = dict(claim._mapping)["claim_id"]
 
     return {
         "status":   "claim_initiated",

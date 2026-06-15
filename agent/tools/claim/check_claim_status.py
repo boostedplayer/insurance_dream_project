@@ -8,12 +8,8 @@ from typing import Optional
 @tool
 def check_claim_status(config: RunnableConfig, claim_id: Optional[int] = None) -> dict:
     """
-    Jab user apne claim ka update maange tab use karo.
-    Examples: 'what happened to my claim?', 'is my claim approved?',
-              'what is the status of claim #5?', 'any update on my claim?'
-
-    claim_id — optional hai. Agar nahi diya, toh user ka sabse latest claim laata hai.
-    Returns: claim ka current status, routing, verdict, aur approved amount agar applicable ho.
+    use when user asks for a claim update ('what happened to my claim?', 'is it approved?').
+    claim_id is optional — omit to get the user's latest claim.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

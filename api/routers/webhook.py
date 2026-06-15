@@ -25,9 +25,8 @@ def _verify_signature(body: bytes, signature: str) -> bool:
 @router.post("/razorpay")
 async def razorpay_webhook(request: Request):
     """
-    Razorpay payment complete hone ke baad is endpoint ko call karta hai.
-    Webhook signature verify karo aur DB mein purchase_orders ka status update karo.
-    Is URL ko apne Razorpay dashboard ke Webhooks section mein set karo.
+    called by Razorpay after payment. verifies signature and updates purchase_orders status.
+    register this URL in Razorpay dashboard → Webhooks.
     """
     body      = await request.body()
     signature = request.headers.get("X-Razorpay-Signature", "")
@@ -39,7 +38,6 @@ async def razorpay_webhook(request: Request):
 
     event_type = event.get("event")
 
-    # payment_link.paid — payment link successfully pay ho gaya
     if event_type == "payment_link.paid":
         payload     = event.get("payload", {})
         link_entity = payload.get("payment_link", {}).get("entity", {})
@@ -62,7 +60,6 @@ async def razorpay_webhook(request: Request):
                     {"pay_id": payment_id, "link_id": link_id}
                 )
 
-    # payment_link.expired — user ne time pe payment nahi ki
     elif event_type == "payment_link.expired":
         payload = event.get("payload", {})
         link_id = payload.get("payment_link", {}).get("entity", {}).get("id")

@@ -13,14 +13,10 @@ load_dotenv()
 @tool
 def confirm_purchase(payment_link_id: str, config: RunnableConfig) -> dict:
     """
-    Jab user bol de ki usne payment kar di
-    ('I've paid', 'payment done', 'I completed it', 'activate my policy', 'check my payment'),
-    tab is tool ko use karo.
-    Razorpay payment verify karo aur confirm hone par policy activate kar do.
+    use when user says they've paid ('payment done', 'activate my policy', etc.).
+    verifies razorpay payment and activates the policy if confirmed.
 
-    payment_link_id — create_payment_order ne jo Razorpay payment link ID di thi.
-                      Agar user ne mention nahi ki toh conversation history se dhundh lo.
-    Returns: policy activation confirmation ya current payment status.
+    payment_link_id — from create_payment_order; check conversation history if user didn't mention it.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -37,7 +33,7 @@ def confirm_purchase(payment_link_id: str, config: RunnableConfig) -> dict:
             {"uid": auth_user_id, "link_id": payment_link_id}
         ).fetchone()
 
-        # Fallback: agar LLM galat ya khaali ID de, toh latest pending order dhundho
+        # fallback for when LLM passes wrong/empty id
         if not order:
             order = conn.execute(
                 text("""
@@ -88,20 +84,20 @@ def confirm_purchase(payment_link_id: str, config: RunnableConfig) -> dict:
             )
         }
 
-    # Razorpay payment link response se payment_id nikaal lo
+    # pull payment_id out of the razorpay link response
     payment_id = None
     payments   = link_data.get("payments", {}).get("items", [])
     if payments:
         payment_id = payments[0].get("payment_id") or payments[0].get("id")
 
-    # Tenure se policy validity dates calculate karo (PostgreSQL INTERVAL → timedelta)
+    # policy_tenure comes back as a timedelta from postgres INTERVAL
     today      = date.today()
     valid_from = today
     tenure     = order["policy_tenure"]
 
     tenure_days = tenure.days if hasattr(tenure, "days") else 365
     up_to       = valid_from + timedelta(days=tenure_days)
-    # Start se 30 din baad ka next bill (ya agar tenure 30 din se kam ho toh up_to pe)
+    # next bill in 30 days, unless tenure is shorter
     next_bill   = valid_from + timedelta(days=min(30, tenure_days))
 
     with engine.begin() as conn:
@@ -120,7 +116,8 @@ def confirm_purchase(payment_link_id: str, config: RunnableConfig) -> dict:
             }
         ).fetchone()
 
-        holder_id = holder["holder_id"]
+        # SQLAlchemy 2.0 breaks string-key indexing on Row — use ._mapping
+        holder_id = dict(holder._mapping)["holder_id"]
 
         conn.execute(
             text("""

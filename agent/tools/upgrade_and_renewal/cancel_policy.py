@@ -7,15 +7,10 @@ from sqlalchemy import text
 @tool
 def cancel_policy(holder_id: int, reason: str, config: RunnableConfig) -> dict:
     """
-    Tab use karo jab user seedha kisi existing policy ko cancel ya exit karna chahta ho.
-    Isse call karne se pehle user se confirm zaroor karo — cancellation wapas nahi hoti.
-
-    Examples: 'cancel my policy', 'I want to exit my health insurance',
-              'discontinue my motor cover', 'I don't need this policy anymore'.
-
-    holder_id — jo policyholder cancel karna hai uska ID (get_user_policies se lo).
-    reason    — cancellation ki wajah thodi si (user ke words ya tumhari summary).
-    Returns: cancellation ka confirmation.
+    use when user wants to cancel an existing policy. always confirm with user first — irreversible.
+    holder_id: the policyholder id to cancel (get from get_user_policies).
+    reason: brief reason in user's words or your summary.
+    returns cancellation confirmation.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -55,7 +50,7 @@ def cancel_policy(holder_id: int, reason: str, config: RunnableConfig) -> dict:
             {"hid": holder_id, "uid": auth_user_id}
         )
 
-        # Internal record ke liye reason support_tickets mein log karo
+        # log reason to support_tickets for internal record
         conn.execute(
             text("""
                 INSERT INTO support_tickets (user_id, reason, context, status)

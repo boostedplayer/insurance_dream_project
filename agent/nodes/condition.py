@@ -32,7 +32,7 @@ _CLAIM_TOOL_NAMES = {
 
 
 def route_by_auth(state: OrchestrationState):
-    # Authenticated user → orchestrator (routing brain), warna guest onboarding flow
+    # authenticated → orchestrator, otherwise guest onboarding
     if state.user_valid:
         return "orchestrator"
     else:
@@ -40,10 +40,7 @@ def route_by_auth(state: OrchestrationState):
 
 
 def route_from_orchestrator(state: OrchestrationState):
-    """
-    Orchestrator ne current_flow set kiya — uske hisaab se sahi flow bot pe bhejo.
-    Agar 'general' tha toh orchestrator khud reply kar chuki hai (current_flow=None) → END.
-    """
+    """routes to the right flow bot based on current_flow; general chat already handled → END."""
     mapping = {
         "support":  "support_bot",
         "purchase": "purchase_bot",
@@ -54,7 +51,7 @@ def route_from_orchestrator(state: OrchestrationState):
 
 
 def route_after_support_bot(state: OrchestrationState):
-    """Support bot ne tool call kiya → support tools, warna turn khatam → END."""
+    """tool call → support tools, otherwise done."""
     last_msg = state.text[-1]
     if not isinstance(last_msg, AIMessage) or not last_msg.tool_calls:
         return END

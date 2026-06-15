@@ -7,13 +7,11 @@ from sqlalchemy import text
 @tool
 def initiate_upgrade(holder_id: int, target_policy_name: str, config: RunnableConfig) -> dict:
     """
-    Jab user ne decide kar liya ho ki kaun si policy chahiye upgrade ke liye,
-    tab is tool ko call karo (yani get_upgrade_options dikha diya gaya ho aur user ne ek choose kar liya ho).
-    Ye payment se pehle poora upgrade summary dikhata hai — nayi premium ke saath.
-
-    holder_id          — abhi ka policyholder ID.
-    target_policy_name — jo policy user upgrade karna chahta hai uska naam.
-    Returns: upgrade ka summary jisme purani aur nayi premium compare hogi, aur agle steps bhi.
+    use after user picks an upgrade option from get_upgrade_options.
+    shows full upgrade summary with old vs new premium before payment.
+    holder_id: current policyholder id.
+    target_policy_name: the policy the user wants to upgrade to.
+    returns upgrade summary with premium comparison and next steps.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

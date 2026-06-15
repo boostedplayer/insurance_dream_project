@@ -12,12 +12,10 @@ load_dotenv()
 @tool
 def create_renewal_payment(holder_id: int, config: RunnableConfig) -> dict:
     """
-    Jab user confirm kar de ki woh renew karna chahta hai tab hi use karo (get_renewal_summary
-    dikhane ke baad aur user ne yes/proceed/renew bol diya ho). Renewal amount ke liye
-    ek Razorpay Payment Link banata hai.
-
-    holder_id — woh policyholder ID jo get_renewal_summary ne return ki thi.
-    Returns: Razorpay payment link URL jis par user click karke pay karta hai.
+    use only after user confirms they want to renew (after get_renewal_summary and user said yes).
+    creates a razorpay payment link for the renewal amount.
+    holder_id: the policyholder id returned by get_renewal_summary.
+    returns a razorpay payment url for the user to click and pay.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 

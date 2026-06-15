@@ -7,17 +7,12 @@ from sqlalchemy import text
 @tool
 def get_premium_breakdown(config: RunnableConfig) -> dict:
     """
-    Tab use karo jab user pooche ki unka premium itna kyun hai, ya kaise calculate hua,
-    ya phir apna risk assessment samajhna chahein.
-    Examples: 'why is my premium so high?', 'how was my premium calculated?',
-              'what is my risk category?', 'explain my insurance pricing.'
-
-    Latest underwriting result return karta hai jisme base premium, risk loading percentage,
-    loading amount, aur har held policy ka final premium ka poora breakdown hota hai.
+    use when user asks why their premium is high or how it was calculated.
+    returns latest underwriting result with base premium, risk loading, and final premium per policy.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
-    # Is user ka sabse latest risk assessment nikalo
+    # grab most recent risk assessment
     with engine.connect() as conn:
         underwriting = conn.execute(
             text("""
@@ -42,7 +37,7 @@ def get_premium_breakdown(config: RunnableConfig) -> dict:
 
     uw = dict(underwriting._mapping)
 
-    # User ki held policies laao taaki har policy ka premium breakdown dikha sakein
+    # fetch held policies so we can break down premium per policy
     with engine.connect() as conn:
         policies = conn.execute(
             text("""

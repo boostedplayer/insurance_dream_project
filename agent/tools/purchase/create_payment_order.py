@@ -54,7 +54,7 @@ def create_payment_order(policy_id: int, config: RunnableConfig) -> dict:
 
     base_premium  = float(policy["base_premium"])
     loading_pct   = float(uw["loading_percent"])
-    final_premium = round(base_premium + base_premium * loading_pct / 100, 2)
+    final_premium = round(base_premium + base_premium * loading_pct, 2)
     amount_paise  = int(final_premium * 100)
 
     rz_client = razorpay.Client(auth=(

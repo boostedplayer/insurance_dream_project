@@ -1,14 +1,14 @@
 """
-Ek baar ka setup — FAQ aur policy data ko embed karke Pinecone mein upload karo.
+one-time setup — embed FAQ + policy data and upload to Pinecone.
 
-Yeh sirf EK BAAR chalao application shuru karne se pehle (ya jab bhi CSV data badal jaaye):
+run once before starting the app (or whenever the CSVs change):
     python setup_vectors.py
 
-Zaroorat hai:
-  - PINECONE_API_KEY .env mein set ho
-  - HUGGINGFACEHUB_ACCESS_TOKEN .env mein set ho
-  - insurance_faq_dataset.csv project root mein present ho
-  - insurance_policy_dataset.csv project root mein present ho
+needs:
+  - PINECONE_API_KEY in .env
+  - HUGGINGFACEHUB_ACCESS_TOKEN in .env
+  - insurance_faq_dataset.csv at project root
+  - insurance_policy_dataset.csv at project root
 """
 import subprocess
 import sys

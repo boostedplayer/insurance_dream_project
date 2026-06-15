@@ -15,10 +15,7 @@ _bearer = HTTPBearer()
 
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer)) -> dict:
-    """
-    FastAPI ka dependency wala function — JWT validate karo aur user dict return karo.
-    Kisi bhi protected route mein inject karo: user = Depends(get_current_user)
-    """
+    """validate JWT and return user dict; inject via Depends(get_current_user)"""
     token = credentials.credentials
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -31,7 +28,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(_bearer
 
     with engine.connect() as conn:
         user = conn.execute(
-            text("SELECT user_id, name, email, is_active FROM users WHERE user_id = :uid"),
+            text("SELECT user_id, name, email, is_active, risk_profile_completed FROM users WHERE user_id = :uid"),
             {"uid": user_id}
         ).fetchone()
 

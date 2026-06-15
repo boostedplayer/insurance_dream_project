@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Risk Profile — Insurance AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+
+  <div class="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+
+    <div class="text-center mb-6">
+      <div class="text-3xl mb-2">🛡️</div>
+      <h1 class="text-2xl font-bold text-slate-800">Let's build your risk profile</h1>
+      <p class="text-slate-500 text-sm mt-1">
+        Hi {{ name }}! Answer these {{ total }} quick questions so we can recommend
+        the right insurance for you. This is a one-time setup.
+      </p>
+    </div>
+
+    {% if error %}
+    <div class="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    {% if questions %}
+    <!-- Progress bar -->
+    <div class="mb-6">
+      <div class="flex justify-between text-xs text-slate-500 mb-1">
+        <span id="progress-label">Question 1 of {{ total }}</span>
+        <span id="progress-pct">0%</span>
+      </div>
+      <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-blue-600 transition-all duration-300" style="width:0%"></div>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'questionnaire' %}" id="quiz-form">
+      {% csrf_token %}
+
+      {% for q in questions %}
+      <div class="quiz-step {% if not forloop.first %}hidden{% endif %}" data-step="{{ forloop.counter0 }}">
+        <p class="text-base font-semibold text-slate-800 mb-4">
+          <span class="text-blue-600">{{ forloop.counter }}.</span> {{ q.question }}
+        </p>
+        <div class="space-y-2">
+          {% for opt in q.options %}
+          <label class="flex items-center gap-3 px-4 py-3 border border-slate-300 rounded-lg
+                        cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-colors
+                        has-[:checked]:bg-blue-50 has-[:checked]:border-blue-500">
+            <input
+              type="radio"
+              name="{{ q.key }}"
+              value="{{ opt.value }}"
+              class="quiz-radio h-4 w-4 text-blue-600 focus:ring-blue-500"
+              required
+            />
+            <span class="text-sm text-slate-700">{{ opt.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Navigation -->
+      <div class="flex items-center justify-between mt-8">
+        <button type="button" id="back-btn"
+          class="px-5 py-2.5 text-sm font-semibold text-slate-600 rounded-lg
+                 hover:bg-slate-100 transition-colors invisible">
+          ← Back
+        </button>
+        <button type="button" id="next-btn"
+          class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold
+                 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          Next →
+        </button>
+        <button type="submit" id="submit-btn"
+          class="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold
+                 rounded-lg text-sm transition-colors hidden disabled:opacity-50">
+          Finish & Start Chatting
+        </button>
+      </div>
+    </form>
+    {% else %}
+    <div class="text-center text-slate-500 text-sm">
+      Couldn't load the questionnaire. Please refresh the page or try again later.
+    </div>
+    {% endif %}
+
+  </div>
+
+  <script>
+    (function () {
+      const steps    = Array.from(document.querySelectorAll('.quiz-step'));
+      const total    = steps.length;
+      if (!total) return;
+
+      const backBtn   = document.getElementById('back-btn');
+      const nextBtn    = document.getElementById('next-btn');
+      const submitBtn = document.getElementById('submit-btn');
+      const bar       = document.getElementById('progress-bar');
+      const label     = document.getElementById('progress-label');
+      const pct       = document.getElementById('progress-pct');
+      let current     = 0;
+
+      function selectedValue(i) {
+        const checked = steps[i].querySelector('input[type=radio]:checked');
+        return checked ? checked.value : null;
+      }
+
+      function render() {
+        steps.forEach((s, i) => s.classList.toggle('hidden', i !== current));
+        backBtn.classList.toggle('invisible', current === 0);
+
+        const isLast = current === total - 1;
+        nextBtn.classList.toggle('hidden', isLast);
+        submitBtn.classList.toggle('hidden', !isLast);
+
+        const answered = selectedValue(current) !== null;
+        nextBtn.disabled   = !answered;
+        submitBtn.disabled = !answered;
+
+        const pctVal = Math.round((current / total) * 100);
+        bar.style.width = pctVal + '%';
+        label.textContent = 'Question ' + (current + 1) + ' of ' + total;
+        pct.textContent   = pctVal + '%';
+      }
+
+      // Enable Next as soon as an option is picked; auto-advance for speed
+      steps.forEach((step, i) => {
+        step.addEventListener('change', () => {
+          if (i !== current) return;
+          nextBtn.disabled = false;
+          submitBtn.disabled = false;
+          if (current < total - 1) {
+            setTimeout(() => { current++; render(); }, 180);
+          } else {
+            bar.style.width = '100%';
+            pct.textContent = '100%';
+          }
+        });
+      });
+
+      nextBtn.addEventListener('click', () => {
+        if (selectedValue(current) === null) return;
+        if (current < total - 1) { current++; render(); }
+      });
+
+      backBtn.addEventListener('click', () => {
+        if (current > 0) { current--; render(); }
+      });
+
+      render();
+    })();
+  </script>
+
+</body>
+</html>

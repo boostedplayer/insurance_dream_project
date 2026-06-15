@@ -7,12 +7,8 @@ from sqlalchemy import text
 @tool
 def flag_for_human_review(claim_id: int, config: RunnableConfig) -> dict:
     """
-    Tab use karo jab assess_claim ne routing='human_review' return kiya ho.
-    Claim ko manual review ke liye flag karta hai — ek human agent pehle dekhega, phir approval ya rejection hogi.
-    Human agent claim ki details review karke decision submit karega.
-
-    claim_id — woh claim ID jo initiate_claim / assess_claim se mili hai.
-    Returns: confirmation ki claim human review queue mein aa gaya hai.
+    only call when assess_claim returned routing='human_review'.
+    queues the claim for a human agent to review before any decision is made.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -56,7 +52,7 @@ def flag_for_human_review(claim_id: int, config: RunnableConfig) -> dict:
             text("UPDATE claim SET status = 'human_review' WHERE claim_id = :cid"),
             {"cid": claim_id}
         )
-        # Human team ko dikhne ke liye support_tickets mein bhi log kar do
+        # also log to support_tickets so the human team can see it
         conn.execute(
             text("""
                 INSERT INTO support_tickets (user_id, reason, context, status)

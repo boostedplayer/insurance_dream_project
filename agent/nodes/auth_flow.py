@@ -5,11 +5,7 @@ from agent.state.orchestration_state import OrchestrationState
 
 
 async def support_bot(state: OrchestrationState):
-    """
-    Support flow ka bot — sirf support tools use karta hai (FAQ, policy details, compare,
-    new policy inquiry, claim history, escalate, etc.). Orchestrator isi par route karti hai
-    jab user ki intent support/explore/Q&A hoti hai.
-    """
+    """handles support intents — faq, policy details, compare, claim history, escalate, etc."""
     from agent.graph import support_model
 
     res = await support_model.ainvoke([SystemMessage(content=insurance_prompt), *state.text])

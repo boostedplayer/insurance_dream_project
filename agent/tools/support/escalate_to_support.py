@@ -7,15 +7,10 @@ from sqlalchemy import text
 @tool
 def escalate_to_support(reason: str, context: str, config: RunnableConfig) -> dict:
     """
-    Tab use karo jab user kisi human agent se baat karna chahta ho, ya query itni complex ho
-    ki bot se solve nahi ho rahi, ya user frustrated ho aur use insaani madad chahiye.
-    Examples: 'I want to talk to someone', 'connect me to an agent',
-              'this is not helping, I need a real person', 'I have a complaint.'
-
-    reason  — ek line mein batao kyun escalation ki zarurat hai (yeh tum generate karo).
-    context — conversation ka short summary jo issue se related ho (yeh bhi tum generate karo).
-
-    Support ticket banata hai aur user ke reference ke liye ek ticket ID return karta hai.
+    use when user wants a human agent or the query is too complex for the bot.
+    reason: one-line why escalation is needed (you generate this).
+    context: short summary of the relevant conversation (you generate this).
+    creates a support ticket and returns the ticket id.
     """
     auth_user_id = config["configurable"]["auth_user_id"]
 
@@ -33,6 +28,9 @@ def escalate_to_support(reason: str, context: str, config: RunnableConfig) -> di
             }
         ).fetchone()
 
+    # SQLAlchemy 2.0 Row can't be indexed by string key — use ._mapping
+    # this was silently breaking escalation before
+    result     = dict(result._mapping)
     ticket_id  = result["ticket_id"]
     created_at = str(result["created_at"])
 
